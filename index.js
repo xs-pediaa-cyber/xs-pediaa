@@ -1321,249 +1321,7 @@ function sendSweetAlert(res, icon, title, text, redirectUrl) {
                     padding: 10px 24px !important;
                 }
             </style>
-        
-<!-- FINAL STABLE UI PATCH v5 -->
-<style id="xs-final-ui-patch-v5">
-  /* Keep the whole docs surface white and isolated from legacy dark-mode rules. */
-  html, body, body.light-mode, #themeBg { background:#fff !important; }
-
-  /* Never let legacy role selectors paint large containers. */
-  #apiList [data-type="vip"]:not(.endpoint-vip-badge),
-  #apiList [data-plan="vip"]:not(.endpoint-vip-badge),
-  #apiList [data-type="premium"]:not(.endpoint-premium-badge),
-  #apiList [data-plan="premium"]:not(.endpoint-premium-badge) {
-    background:transparent !important;
-    background-image:none !important;
-    color:inherit !important;
-    border-color:transparent !important;
-    box-shadow:none !important;
-    filter:none !important;
-    -webkit-filter:none !important;
-    opacity:1 !important;
-  }
-
-  /* Exact role badges only: compact, bright and never allowed to cover siblings. */
-  #apiList .endpoint-vip-badge,
-  #apiList .endpoint-premium-badge {
-    position:relative !important;
-    display:inline-flex !important;
-    width:max-content !important;
-    max-width:max-content !important;
-    min-width:0 !important;
-    flex:0 0 auto !important;
-    align-items:center !important;
-    justify-content:center !important;
-    vertical-align:middle !important;
-    z-index:2 !important;
-    overflow:visible !important;
-    opacity:1 !important;
-    filter:none !important;
-    -webkit-filter:none !important;
-    box-sizing:border-box !important;
-  }
-  #apiList .endpoint-vip-badge {
-    background:#efe0ff !important;
-    color:#7c3aed !important;
-    border:2px solid #c084fc !important;
-    box-shadow:0 0 12px rgba(168,85,247,.22) !important;
-  }
-  #apiList .endpoint-premium-badge {
-    background:#fff0c7 !important;
-    color:#d97706 !important;
-    border:2px solid #f6c766 !important;
-    box-shadow:0 0 12px rgba(245,158,11,.20) !important;
-  }
-  #apiList .endpoint-vip-badge *,
-  #apiList .endpoint-premium-badge * {
-    color:inherit !important;
-    opacity:1 !important;
-    filter:none !important;
-    -webkit-filter:none !important;
-    text-shadow:none !important;
-    background:transparent !important;
-    border-color:transparent !important;
-  }
-  #apiList .endpoint-vip-badge svg,
-  #apiList .endpoint-premium-badge svg {
-    display:inline-block !important;
-    visibility:visible !important;
-    opacity:1 !important;
-    color:currentColor !important;
-    stroke:currentColor !important;
-    fill:currentColor !important;
-  }
-
-  /* READY/FREE remain bright and compact. */
-  #apiList .endpoint-ready-badge,
-  #apiList .endpoint-free-badge {
-    position:relative !important;
-    display:inline-flex !important;
-    width:max-content !important;
-    max-width:max-content !important;
-    min-width:0 !important;
-    flex:0 0 auto !important;
-    align-items:center !important;
-    justify-content:center !important;
-    vertical-align:middle !important;
-    opacity:1 !important;
-    filter:none !important;
-    -webkit-filter:none !important;
-    z-index:2 !important;
-    box-sizing:border-box !important;
-  }
-  #apiList .endpoint-ready-badge {
-    background:#d9ffe8 !important;
-    color:#16a34a !important;
-    border:2px solid #86efac !important;
-    box-shadow:0 0 12px rgba(34,197,94,.22) !important;
-  }
-  #apiList .endpoint-free-badge {
-    background:#dff5ff !important;
-    color:#0284c7 !important;
-    border:2px solid #7dd3fc !important;
-    box-shadow:0 0 12px rgba(14,165,233,.22) !important;
-  }
-  #apiList .endpoint-ready-badge *,
-  #apiList .endpoint-free-badge * {
-    color:inherit !important;
-    opacity:1 !important;
-    background:transparent !important;
-    filter:none !important;
-    -webkit-filter:none !important;
-  }
-
-  /* Endpoint detail/request/response panels: white, black text, no legacy dark blocks. */
-  #apiList .endpoint-details,
-  #apiList .endpoint-detail,
-  #apiList .api-details,
-  #apiList .api-detail,
-  #apiList .endpoint-content,
-  #apiList .endpoint-info,
-  #apiList .request-response,
-  #apiList .request-response-panel,
-  #apiList .request-panel,
-  #apiList .response-panel {
-    background:#fff !important;
-    background-image:none !important;
-    color:#0f172a !important;
-    border-color:#d9e2e8 !important;
-    box-shadow:none !important;
-  }
-
-  /* Every code/request/response surface is a white box with dark readable text. */
-  #apiList pre,
-  #apiList code,
-  #apiList pre code,
-  #apiList input,
-  #apiList textarea,
-  #apiList select,
-  #apiList .code-block,
-  #apiList .code-box,
-  #apiList .request-box,
-  #apiList .response-box,
-  #apiList .curl-box,
-  #apiList .url-box,
-  #apiList .xs-request-url-box,
-  #apiList .xs-response-white {
-    background:#fff !important;
-    background-image:none !important;
-    color:#111827 !important;
-    border-color:#d5dee6 !important;
-    text-shadow:none !important;
-    box-shadow:none !important;
-    opacity:1 !important;
-  }
-  #apiList pre *,
-  #apiList code *,
-  #apiList .xs-request-url-box *,
-  #apiList .xs-response-white * {
-    color:#111827 !important;
-    background:transparent !important;
-    text-shadow:none !important;
-    opacity:1 !important;
-  }
-  #apiList input::placeholder,
-  #apiList textarea::placeholder { color:#64748b !important; opacity:1 !important; }
-
-  /* Hide the description panel only. */
-  #apiList .xs-hide-endpoint-description { display:none !important; }
-
-  /* Execute button is always a solid visible button. */
-  #apiList .xs-execute-button {
-    display:inline-flex !important;
-    align-items:center !important;
-    justify-content:center !important;
-    background:#06b6d4 !important;
-    background-image:none !important;
-    color:#fff !important;
-    border:2px solid #0891b2 !important;
-    box-shadow:0 5px 14px rgba(6,182,212,.24) !important;
-    opacity:1 !important;
-    visibility:visible !important;
-    filter:none !important;
-    -webkit-filter:none !important;
-    text-shadow:none !important;
-    cursor:pointer !important;
-  }
-  #apiList .xs-execute-button:hover { background:#0891b2 !important; }
-  #apiList .xs-execute-button:disabled {
-    background:#67cfe0 !important;
-    color:#fff !important;
-    opacity:.75 !important;
-  }
-
-  /* Category cards: keep the icon in its own left slot, never over endpoint content. */
-  #apiList .xs-category-card {
-    position:relative !important;
-    min-height:106px !important;
-    padding-left:128px !important;
-    overflow:visible !important;
-    box-sizing:border-box !important;
-  }
-  #apiList .xs-category-title {
-    margin-left:0 !important;
-    position:relative !important;
-    z-index:2 !important;
-  }
-  #apiList .xs-category-icon {
-    position:absolute !important;
-    left:28px !important;
-    top:50% !important;
-    transform:translateY(-50%) !important;
-    width:72px !important;
-    height:72px !important;
-    border-radius:20px !important;
-    display:flex !important;
-    align-items:center !important;
-    justify-content:center !important;
-    background:#a8a9ad !important;
-    color:#86f0b0 !important;
-    border:2px solid #d7d9dc !important;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.42),0 5px 14px rgba(15,23,42,.10) !important;
-    z-index:10 !important;
-    pointer-events:none !important;
-    visibility:visible !important;
-    opacity:1 !important;
-  }
-  #apiList .xs-category-icon svg {
-    display:block !important;
-    width:40px !important;
-    height:40px !important;
-    min-width:40px !important;
-    min-height:40px !important;
-    color:#86f0b0 !important;
-    stroke:#86f0b0 !important;
-    fill:none !important;
-    visibility:visible !important;
-    opacity:1 !important;
-  }
-  @media (max-width:640px) {
-    #apiList .xs-category-card { min-height:104px !important; padding-left:126px !important; }
-    #apiList .xs-category-icon { left:28px !important; width:70px !important; height:70px !important; }
-  }
-</style>
-
-</head>
+        </head>
         <body>
             <script>
                 Swal.fire({
@@ -3181,7 +2939,7 @@ app.get('/database/changelog', (req, res) => {
 
 app.get('/docs', (req, res) => {
     res.send(`<!DOCTYPE html>
-<html lang="id" class="notranslate light" translate="no">
+<html lang="id" class="notranslate" translate="no">
 <head>
     <meta charset="UTF-8" />
     <meta name="google" content="notranslate" />
@@ -3321,6 +3079,111 @@ app.get('/docs', (req, res) => {
     .scrollbar-hide::-webkit-scrollbar { display: none; }
     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
+    #cyber-loader-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        background:linear-gradient(135deg,#f4fff1,#dff7df,#fffdf3);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.6s ease;
+    }
+
+    #cyber-loader-overlay.fade-out {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    .scanner-beam {
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 300%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(0, 243, 255, 0.05), transparent);
+        animation: scanAnimation 4s infinite linear;
+    }
+    @keyframes scanAnimation {
+        0% { transform: translateY(-100%); }
+        100% { transform: translateY(100%); }
+    }
+
+    .hud-ring {
+        position: relative;
+        width: 130px;
+        height: 130px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .ring-outer {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        border: 2px dashed var(--neon-cyan);
+        opacity: 0.6;
+        animation: spinClockwise 10s linear infinite;
+        box-shadow: 0 0 15px var(--neon-glow);
+    }
+
+    .ring-middle {
+        position: absolute;
+        inset: 10px;
+        border-radius: 50%;
+        border: 2px solid transparent;
+        border-top-color: var(--neon-cyan);
+        border-bottom-color: var(--neon-cyan);
+        animation: spinCounterClockwise 4s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+    }
+
+    .ring-inner {
+        position: absolute;
+        inset: 20px;
+        border-radius: 50%;
+        border: 1px dotted var(--neon-cyan);
+        opacity: 0.8;
+        animation: spinClockwise 6s linear infinite;
+    }
+
+    .hud-avatar {
+        width: 65px;
+        height: 65px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--neon-cyan);
+        box-shadow: 0 0 20px var(--neon-cyan);
+        z-index: 10;
+    }
+
+    @keyframes spinClockwise { 100% { transform: rotate(360deg); } }
+    @keyframes spinCounterClockwise { 100% { transform: rotate(-360deg); } }
+
+    .animated-dots::after {
+        content: '';
+        display: inline-block;
+        width: 1.5em;
+        text-align: left;
+        animation: dotsAnimation 1.5s steps(4, end) infinite;
+    }
+    @keyframes dotsAnimation {
+        0% { content: ''; }
+        25% { content: '.'; }
+        50% { content: '..'; }
+        75% { content: '...'; }
+    }
+
+    .neon-progress-bar {
+        background: linear-gradient(90deg, #06b6d4, var(--neon-cyan));
+        box-shadow: 0 0 12px var(--neon-cyan);
+        transition: width 0.15s ease-out;
+    }
+
 .cyber-popup-bg {
   background-color: #010811;
   background-image: radial-gradient(circle at 50% 30%, #031e36 0%, #010811 80%);
@@ -3364,207 +3227,11 @@ app.get('/docs', (req, res) => {
   box-shadow: 0 0 14px rgba(0, 243, 255, 0.8);
 }
 
-/* ============================================================
-   DOCS ENDPOINT CONTRAST PATCH
-   Keeps endpoint detail/request/response panels readable in
-   light mode while matching the dark cyber endpoint styling.
-   ============================================================ */
-#apiList {
-  --docs-panel: #0b1329;
-  --docs-panel-2: #111827;
-  --docs-border: rgba(0, 243, 255, 0.36);
-  --docs-border-soft: rgba(148, 163, 184, 0.28);
-  --docs-text: #f8fafc;
-  --docs-muted: #cbd5e1;
-  --docs-code: #9ef5c3;
-}
-
-/* The expanded endpoint feature/detail area */
-#apiList .endpoint-details,
-#apiList .endpoint-detail,
-#apiList .api-details,
-#apiList .api-detail,
-#apiList .endpoint-content,
-#apiList .endpoint-info,
-#apiList .request-response,
-#apiList .request-response-panel,
-#apiList .request-panel,
-#apiList .response-panel {
-  background: var(--docs-panel) !important;
-  color: var(--docs-text) !important;
-  border-color: var(--docs-border) !important;
-  box-shadow: inset 0 0 0 1px rgba(0, 243, 255, 0.07), 0 12px 30px rgba(2, 8, 23, 0.22) !important;
-}
-
-/* Catch common Tailwind dark panels used by the endpoint renderer. */
-#apiList .bg-slate-950,
-#apiList .bg-slate-900,
-#apiList .bg-slate-800,
-#apiList .bg-gray-950,
-#apiList .bg-gray-900,
-#apiList .bg-gray-800,
-#apiList .bg-zinc-950,
-#apiList .bg-zinc-900,
-#apiList [class*="bg-slate-900/"],
-#apiList [class*="bg-slate-800/"] {
-  background-color: var(--docs-panel) !important;
-  border-color: var(--docs-border-soft) !important;
-}
-
-/* Make every code/request/response surface solid and high-contrast. */
-#apiList pre,
-#apiList code,
-#apiList pre code,
-#apiList .code-block,
-#apiList .code-box,
-#apiList .request-box,
-#apiList .response-box,
-#apiList .curl-box,
-#apiList .url-box {
-  background: #08101f !important;
-  color: var(--docs-code) !important;
-  border: 1px solid var(--docs-border-soft) !important;
-  border-radius: 14px !important;
-  text-shadow: 0 0 8px rgba(158, 245, 195, 0.10);
-}
-
-#apiList pre,
-#apiList .code-block,
-#apiList .code-box,
-#apiList .request-box,
-#apiList .response-box,
-#apiList .curl-box {
-  box-shadow: inset 0 0 0 1px rgba(0, 243, 255, 0.08), 0 8px 20px rgba(2, 8, 23, 0.18) !important;
-}
-
-/* Text that becomes nearly white-on-white when light mode is active. */
-#apiList h1,
-#apiList h2,
-#apiList h3,
-#apiList h4,
-#apiList p,
-#apiList span,
-#apiList div,
-#apiList label,
-#apiList strong,
-#apiList small {
-  text-shadow: none;
-}
-
-.light-mode #apiList .endpoint-details,
-.light-mode #apiList .endpoint-detail,
-.light-mode #apiList .api-details,
-.light-mode #apiList .api-detail,
-.light-mode #apiList .endpoint-content,
-.light-mode #apiList .endpoint-info,
-.light-mode #apiList .request-response,
-.light-mode #apiList .request-response-panel,
-.light-mode #apiList .request-panel,
-.light-mode #apiList .response-panel {
-  background: #0b1329 !important;
-  color: #f8fafc !important;
-  border: 1px solid rgba(0, 243, 255, 0.38) !important;
-}
-
-.light-mode #apiList pre,
-.light-mode #apiList code,
-.light-mode #apiList pre code,
-.light-mode #apiList input,
-.light-mode #apiList textarea,
-.light-mode #apiList select,
-.light-mode #apiList .code-block,
-.light-mode #apiList .code-box,
-.light-mode #apiList .request-box,
-.light-mode #apiList .response-box,
-.light-mode #apiList .curl-box,
-.light-mode #apiList .url-box {
-  background: #08101f !important;
-  color: #d1fae5 !important;
-  border-color: rgba(0, 243, 255, 0.35) !important;
-}
-
-#apiList input::placeholder,
-#apiList textarea::placeholder {
-  color: #64748b !important;
-  opacity: 1 !important;
-}
-
-#apiList input:focus,
-#apiList textarea:focus,
-#apiList select:focus {
-  outline: none !important;
-  border-color: #00f3ff !important;
-  box-shadow: 0 0 0 2px rgba(0, 243, 255, 0.14), 0 0 14px rgba(0, 243, 255, 0.10) !important;
-}
-
-/* Strong, readable field labels inside the detail area. */
-#apiList label,
-#apiList .parameter-label,
-#apiList .param-label,
-#apiList [class*="text-slate-400"],
-#apiList [class*="text-gray-400"] {
-  color: #cbd5e1 !important;
-}
-
-#apiList [class*="text-white"],
-#apiList [class*="text-slate-200"],
-#apiList [class*="text-gray-200"] {
-  color: #f8fafc !important;
-}
-
-/* Request/response headings and status accents. */
-#apiList [class*="uppercase"],
-#apiList .request-title,
-#apiList .response-title,
-#apiList .code-title {
-  letter-spacing: 0.08em;
-}
-
-#apiList button {
-  border-width: 1px !important;
-}
-
-/* Keep the API detail blocks visually separated from endpoint cards. */
-#apiList .endpoint-details,
-#apiList .endpoint-detail,
-#apiList .api-details,
-#apiList .api-detail,
-#apiList .request-response-panel {
-  border-radius: 18px !important;
-  overflow: hidden;
-}
-
-/* Mobile readability */
-@media (max-width: 640px) {
-  #apiList pre,
-  #apiList code,
-  #apiList .code-block,
-  #apiList .code-box,
-  #apiList .request-box,
-  #apiList .response-box,
-  #apiList .curl-box {
-    font-size: 12px !important;
-    line-height: 1.65 !important;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-  }
-}
-
-/* Light-only UI: keep endpoint titles/names readable on white cards. */
-body.light-mode #apiList .endpoint-name,
-body.light-mode #apiList .endpoint-title,
-body.light-mode #apiList .api-name,
-body.light-mode #apiList .api-title,
-body.light-mode #apiList [class*="endpoint-name"],
-body.light-mode #apiList [class*="endpoint-title"] {
-  color: #000000 !important;
-  text-shadow: none !important;
-}
 </style>
 </head>
-<body class="min-h-screen antialiased text-slate-900 relative light-mode">
+<body class="min-h-screen antialiased text-slate-900 relative">
 
-<div id="themeBg" class="fixed inset-0 -z-10"></div>
+
 
     <!-- Welcome Popup -->
     <div id="welcomePopup" class="fixed inset-0 z-[99999] hidden">
@@ -3607,282 +3274,6 @@ body.light-mode #apiList [class*="endpoint-title"] {
       </div>
     </div>
     
-<!-- Bright White Theme Overrides -->
-<style>
-  :root{
-    --ui-ink:#0f172a;
-    --ui-muted:#64748b;
-    --ui-accent:#06b6d4;
-    --ui-accent-soft:#e0f7fb;
-    --ui-border:#d9e2e8;
-    --ui-card:#ffffff;
-    --ui-page:#ffffff;
-  }
-
-  html, body, body.light-mode{
-    background:#ffffff !important;
-    color:var(--ui-ink) !important;
-  }
-
-  body{
-    font-family: Georgia,'Times New Roman',serif !important;
-  }
-
-  body:before{
-    content:"";
-    position:fixed;
-    inset:0;
-    pointer-events:none;
-    opacity:1;
-    background-image:radial-gradient(#cbd5e1 1.4px,transparent 1.4px) !important;
-    background-size:24px 24px !important;
-    z-index:-1;
-  }
-
-  #themeBg{
-    background:#ffffff !important;
-    background-image:none !important;
-  }
-
-  .glass-panel,
-  .light-mode .glass-panel{
-    background:#ffffff !important;
-    color:var(--ui-ink) !important;
-    border:2px solid #dfe7ec !important;
-    box-shadow:0 6px 20px rgba(15,23,42,.06) !important;
-  }
-
-  .filter-btn{
-    border:2px solid #cbd8df !important;
-    background:#ffffff !important;
-    color:#334155 !important;
-    box-shadow:4px 4px 0 rgba(15,23,42,.05) !important;
-  }
-  .filter-btn:hover{
-    background:#f8fafc !important;
-    color:#0f172a !important;
-  }
-  .filter-btn.active{
-    background:#dff7fb !important;
-    color:#0e7490 !important;
-    border-color:#8bd8e7 !important;
-  }
-
-  .lang-btn{
-    background:#ffffff !important;
-    color:#334155 !important;
-    border-color:#cbd8df !important;
-  }
-  .lang-btn.active{
-    background:#cffafe !important;
-    color:#155e75 !important;
-    border-color:#67e8f9 !important;
-  }
-
-  #bioDropdown{
-    background:#ffffff !important;
-    border-left:2px solid #dbe4ea !important;
-    color:#334155 !important;
-  }
-  #bioDropdown .menu-link span{color:#334155 !important}
-  #bioDropdown .menu-link:hover{background:#f8fafc !important}
-  #bioDropdown nav>div{color:#64748b !important}
-
-  .music-player-card{
-    background:#ffffff !important;
-    border:2px solid #dfe7ec !important;
-    box-shadow:0 6px 20px rgba(15,23,42,.06) !important;
-  }
-  .music-text-title{color:#0f172a !important}
-  .music-text-artist{color:#64748b !important}
-
-  #mainTitle{color:#0f172a !important}
-  #mainDescription{color:#64748b !important}
-  #stat-battery-title,#stat-endpoints-title,#stat-categories-title{color:#475569 !important}
-  #siteFooter{color:#64748b !important;border-color:#e2e8f0 !important}
-  #no-results-title{color:#0f172a !important}
-
-  /* Endpoint list cards stay white; endpoint names remain solid black. */
-  #apiList > *{
-    background:#ffffff !important;
-    color:#0f172a !important;
-    border-color:#dfe7ec !important;
-    box-shadow:0 6px 18px rgba(15,23,42,.055) !important;
-  }
-  #apiList h1,#apiList h2,#apiList h3,#apiList h4,#apiList h5,#apiList h6,
-  #apiList a,#apiList span,#apiList div,#apiList strong,#apiList p{
-    text-shadow:none !important;
-  }
-  body.light-mode #apiList .endpoint-name,
-  body.light-mode #apiList .endpoint-title,
-  body.light-mode #apiList .api-name,
-  body.light-mode #apiList .api-title,
-  body.light-mode #apiList [class*="endpoint-name"],
-  body.light-mode #apiList [class*="endpoint-title"]{
-    color:#000000 !important;
-    text-shadow:none !important;
-  }
-
-  /* Make endpoint READY/FREE badges vivid and luminous like PREMIUM/VIP. */
-  #apiList .endpoint-ready-badge,
-  #apiList .ready-badge,
-  #apiList .badge-ready,
-  #apiList [data-status="ready"],
-  #apiList [data-status="READY"]{
-    background:linear-gradient(135deg,#d9ffe9,#c8f8df) !important;
-    color:#16a34a !important;
-    border:1.5px solid #86efac !important;
-    box-shadow:0 0 0 1px rgba(134,239,172,.15),0 0 14px rgba(34,197,94,.24) !important;
-    font-weight:900 !important;
-    text-shadow:0 0 7px rgba(34,197,94,.24) !important;
-    opacity:1 !important;
-  }
-
-  #apiList .endpoint-free-badge,
-  #apiList .free-badge,
-  #apiList .badge-free,
-  #apiList [data-type="free"],
-  #apiList [data-plan="free"]{
-    background:linear-gradient(135deg,#d9f5ff,#d7ecff) !important;
-    color:#0ea5e9 !important;
-    border:1.5px solid #7dd3fc !important;
-    box-shadow:0 0 0 1px rgba(125,211,252,.16),0 0 14px rgba(14,165,233,.24) !important;
-    font-weight:900 !important;
-    text-shadow:0 0 7px rgba(14,165,233,.22) !important;
-    opacity:1 !important;
-  }
-
-  /* Free badge: bright/clear like the Premium & VIP badges. */
-  #userLimitBadge{
-    background:linear-gradient(135deg,#d9f5ff,#d7ecff) !important;
-    color:#0ea5e9 !important;
-    border:1.5px solid #7dd3fc !important;
-    box-shadow:0 0 0 1px rgba(125,211,252,.16),0 0 14px rgba(14,165,233,.24) !important;
-    font-weight:900 !important;
-    text-shadow:0 0 7px rgba(14,165,233,.22) !important;
-  }
-
-  /* Keep endpoint PREMIUM/VIP badges fully opaque and vivid. */
-  #apiList .endpoint-premium-badge,
-  #apiList .premium-badge,
-  #apiList .badge-premium,
-  #apiList [data-type="premium"],
-  #apiList [data-plan="premium"],
-  #apiList .endpoint-vip-badge,
-  #apiList .vip-badge,
-  #apiList .badge-vip,
-  #apiList [data-type="vip"],
-  #apiList [data-plan="vip"]{
-    opacity:1 !important;
-    filter:none !important;
-    -webkit-filter:none !important;
-    font-weight:900 !important;
-    text-shadow:none !important;
-  }
-
-  #apiList .endpoint-premium-badge,
-  #apiList .premium-badge,
-  #apiList .badge-premium,
-  #apiList [data-type="premium"],
-  #apiList [data-plan="premium"]{
-    background:linear-gradient(135deg,#fff7d6,#ffe8ad) !important;
-    color:#d98a00 !important;
-    border:1.5px solid #f6c766 !important;
-    box-shadow:0 0 0 1px rgba(246,199,102,.18),0 0 16px rgba(245,158,11,.24) !important;
-  }
-
-  #apiList .endpoint-vip-badge,
-  #apiList .vip-badge,
-  #apiList .badge-vip,
-  #apiList [data-type="vip"],
-  #apiList [data-plan="vip"]{
-    background:linear-gradient(135deg,#f4e7ff,#ead5ff) !important;
-    color:#8b5cf6 !important;
-    border:1.5px solid #c084fc !important;
-    box-shadow:0 0 0 1px rgba(192,132,252,.18),0 0 16px rgba(168,85,247,.24) !important;
-  }
-
-  /* Keep role/profile badges bright on the white theme. */
-  #userPlanTextBadge{
-    background:linear-gradient(135deg,#e7f8ff,#f3fbff) !important;
-    color:#0e7490 !important;
-    border:1px solid #b8e8f3 !important;
-  }
-
-  /* Restore the category logo boxes that were present in the original cards. */
-  #apiList .xs-category-card{
-    position:relative !important;
-    overflow:visible !important;
-  }
-  #apiList .xs-category-icon{
-    position:absolute !important;
-    left:32px !important;
-    top:50% !important;
-    transform:translateY(-50%) !important;
-    width:96px !important;
-    height:96px !important;
-    border-radius:22px !important;
-    background:#a8a9ad !important;
-    color:#86f0b0 !important;
-    border:2px solid #d5d8dc !important;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.4), 0 4px 10px rgba(15,23,42,.08) !important;
-    display:flex !important;
-    align-items:center !important;
-    justify-content:center !important;
-    z-index:5 !important;
-  }
-  #apiList .xs-category-icon svg{
-    width:48px !important;
-    height:48px !important;
-    stroke:currentColor !important;
-    fill:none !important;
-  }
-  #apiList .xs-category-title{
-    margin-left:128px !important;
-  }
-  @media (max-width:640px){
-    #apiList .xs-category-icon{
-      left:28px !important;
-      width:96px !important;
-      height:96px !important;
-    }
-    #apiList .xs-category-title{
-      margin-left:128px !important;
-    }
-  }
-</style>
-
-<!-- Final stable endpoint readability overrides -->
-<style>
-  /* Remove the old dark description header/body completely. */
-  #apiList .xs-hide-endpoint-description{display:none !important;}
-
-  /* Request URL surface is white; readable black text. */
-  #apiList .xs-request-url-box,
-  #apiList .xs-request-url-box *{
-    background:#ffffff !important;
-    color:#0f172a !important;
-    border-color:#d7e0e7 !important;
-    text-shadow:none !important;
-  }
-
-  /* Response/code text is black on white. */
-  #apiList .xs-response-white,
-  #apiList .xs-response-white *{
-    color:#0f172a !important;
-    text-shadow:none !important;
-  }
-
-  /* Exact endpoint role badges: never inherit faded/disabled opacity. */
-  #apiList .endpoint-premium-badge,
-  #apiList .endpoint-vip-badge{
-    opacity:1 !important;
-    filter:none !important;
-    -webkit-filter:none !important;
-    text-shadow:none !important;
-  }
-</style>
-
 <!-- User Profile Pop-up Modal -->
 <style>
   #profilePopup .profile-shell{font-family:Georgia,'Times New Roman',serif;color:#52645a}
@@ -4381,334 +3772,6 @@ body.light-mode #apiList [class*="endpoint-title"] {
 <script src="script.js"></script>
 
 <script>
-    // XS-PEDIA is intentionally light-only: no dark/light switch and no persisted dark mode.
-    (() => {
-        const root = document.documentElement;
-        const applyLightMode = () => {
-            root.classList.add('light');
-            root.classList.remove('dark');
-            document.body.classList.add('light-mode');
-            document.body.classList.remove('dark-mode');
-        };
-
-        try {
-            ['theme', 'color-theme', 'themeMode'].forEach((key) => localStorage.removeItem(key));
-        } catch (_) {}
-
-        applyLightMode();
-
-        // Keep the page light even if an older cached script tries to restore dark mode.
-        if (window.MutationObserver) {
-            new MutationObserver(applyLightMode).observe(root, {
-                attributes: true,
-                attributeFilter: ['class']
-            });
-        }
-    })();
-
-    // Endpoint names in the list are always black in the light UI.
-    (() => {
-        const apiList = document.getElementById('apiList');
-        if (!apiList) return;
-
-        const detailSelectors = [
-            '.endpoint-details',
-            '.endpoint-detail',
-            '.api-details',
-            '.api-detail',
-            '.endpoint-content',
-            '.endpoint-info',
-            '.request-response',
-            '.request-response-panel',
-            '.request-panel',
-            '.response-panel'
-        ].join(',');
-
-        let endpointNames = new Set();
-
-        const applyEndpointNameColors = () => {
-            if (!endpointNames.size) return;
-
-            const elements = apiList.querySelectorAll('h1,h2,h3,h4,h5,h6,a,span,div,strong,p');
-            elements.forEach((el) => {
-                const value = (el.textContent || '').trim();
-                if (!value || !endpointNames.has(value)) return;
-                if (el.closest(detailSelectors)) return;
-                el.style.setProperty('color', '#000000', 'important');
-                el.style.setProperty('text-shadow', 'none', 'important');
-            });
-        };
-
-        const loadEndpointNames = async () => {
-            try {
-                const response = await fetch('/api/apilist', {
-                    credentials: 'same-origin',
-                    cache: 'no-store'
-                });
-                const data = await response.json();
-                const categories = Array.isArray(data?.categories) ? data.categories : [];
-                endpointNames = new Set(
-                    categories.flatMap((category) =>
-                        Array.isArray(category?.items)
-                            ? category.items.map(item => String(item?.name || '').trim()).filter(Boolean)
-                            : []
-                    )
-                );
-                applyEndpointNameColors();
-            } catch (_) {}
-        };
-
-        if (window.MutationObserver) {
-            new MutationObserver(applyEndpointNameColors).observe(apiList, {
-                childList: true,
-                subtree: true
-            });
-        }
-
-        loadEndpointNames();
-
-        // Restore category logos/icons in the category header cards.
-        // The endpoint renderer is external (script.js), so add the icons after
-        // the category cards are mounted without touching endpoint detail cards.
-        (() => {
-            const iconSvgs = {
-                AI: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="7" width="16" height="12" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11h.01M16 11h.01M8 15h8M12 7V4M9 4h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M2 12v4M22 12v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
-                AMPRO: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 12h16M12 4c2.2 2.2 3.3 4.9 3.3 8s-1.1 5.8-3.3 8c-2.2-2.2-3.3-4.9-3.3-8S9.8 6.2 12 4Z" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
-                KOMIKU: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H20v17H7.5A2.5 2.5 0 0 0 5 21.5v-17Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M5 5h12M9 8h7M9 12h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
-                RANDOM: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h5v5M4 6h4c4 0 4 12 8 12h5M16 21h5v-5M4 18h4c1.7 0 2.8-2 3.5-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-                TOOLS: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a5 5 0 0 0-6.4 6.4L3 18l3 3 5.3-5.3a5 5 0 0 0 6.4-6.4l-3 3-2-2 3-3Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-                'XS-PEDIA': '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v14H5z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 9h8M8 12h6M8 15h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
-                OTHER: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="4" width="6" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="4" y="14" width="6" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="6" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="2"/></svg>'
-            };
-
-            const addCategoryIcons = () => {
-                const cards = apiList.querySelectorAll(':scope > *');
-                cards.forEach((card) => {
-                    if (card.querySelector(':scope > .xs-category-icon')) return;
-
-                    const text = (card.textContent || '').replace(/\s+/g, ' ').trim();
-                    const countMatch = text.match(/(\d+)\s+endpoints?/i);
-                    if (!countMatch) return;
-
-                    let categoryName = '';
-                    const candidates = card.querySelectorAll('h1,h2,h3,h4,h5,h6,[class*="font-extrabold"],[class*="font-bold"]');
-                    for (const node of candidates) {
-                        const value = (node.textContent || '').replace(/\s+/g, ' ').trim().toUpperCase();
-                        if (iconSvgs[value]) { categoryName = value; break; }
-                    }
-                    if (!categoryName) {
-                        const known = Object.keys(iconSvgs).find(name => new RegExp('\\b' + name.replace(/[-]/g, '\\-') + '\\b', 'i').test(text));
-                        if (known) categoryName = known;
-                    }
-                    if (!categoryName) return;
-
-                    card.classList.add('xs-category-card');
-                    const icon = document.createElement('div');
-                    icon.className = 'xs-category-icon';
-                    icon.setAttribute('aria-hidden', 'true');
-                    icon.innerHTML = iconSvgs[categoryName];
-                    card.prepend(icon);
-
-                    const title = Array.from(candidates).find(node =>
-                        (node.textContent || '').replace(/\s+/g, ' ').trim().toUpperCase() === categoryName
-                    );
-                    if (title) title.classList.add('xs-category-title');
-                });
-            };
-
-            addCategoryIcons();
-            if (window.MutationObserver) {
-                new MutationObserver(addCategoryIcons).observe(apiList, { childList: true, subtree: true });
-            }
-        })();
-
-        // Keep READY/FREE/PREMIUM/VIP badges crisp and remove the old description block.
-        (() => {
-            const normalize = (value) => (value || '').replace(/\s+/g, ' ').trim().toUpperCase();
-
-            const applyStableEndpointUI = () => {
-                const nodes = apiList.querySelectorAll('span,div,p,strong,a,b,button,h1,h2,h3,h4,h5,h6,label');
-                nodes.forEach((el) => {
-                    const text = normalize(el.textContent);
-                    if (text === 'READY') {
-                        el.classList.add('endpoint-ready-badge');
-                    } else if (text === '✓ FREE' || text === 'FREE') {
-                        el.classList.add('endpoint-free-badge');
-                    } else if (text === 'VIP' || text.includes(' VIP')) {
-                        el.classList.add('endpoint-vip-badge');
-                    } else if (text === 'PREMIUM' || text.includes(' PREMIUM')) {
-                        el.classList.add('endpoint-premium-badge');
-                    }
-                });
-
-                // Hide only the descriptive header section, not the actual request/response blocks.
-                const all = Array.from(apiList.querySelectorAll('div,section,article,header'));
-                all.forEach((el) => {
-                    if (el.dataset.xsDescriptionHidden === '1') return;
-                    const own = normalize(el.textContent);
-                    if (!own.includes('DESKRIPSI ENDPOINT')) return;
-                    const headerMatch = Array.from(el.querySelectorAll('*')).some(child => {
-                        const t = normalize(child.textContent);
-                        return t === 'DESKRIPSI ENDPOINT';
-                    });
-                    if (!headerMatch) return;
-                    // Choose the nearest compact container around that exact heading.
-                    let target = el;
-                    const heading = Array.from(el.querySelectorAll('*')).find(child => normalize(child.textContent) === 'DESKRIPSI ENDPOINT');
-                    if (heading) {
-                        let parent = heading.parentElement;
-                        for (let i = 0; i < 3 && parent; i++, parent = parent.parentElement) {
-                            const txt = normalize(parent.textContent);
-                            if (txt.includes('DESKRIPSI ENDPOINT') && !txt.includes('ENDPOINT / REQUEST URL')) target = parent;
-                        }
-                    }
-                    target.classList.add('xs-hide-endpoint-description');
-                    target.dataset.xsDescriptionHidden = '1';
-                });
-
-                // Mark request URL containers for the final white-theme override.
-                const urlHeadings = Array.from(apiList.querySelectorAll('*')).filter(el => {
-                    const t = normalize(el.textContent);
-                    return t === 'ENDPOINT / REQUEST URL';
-                });
-                urlHeadings.forEach((heading) => {
-                    let box = heading.parentElement;
-                    for (let i = 0; i < 5 && box; i++, box = box.parentElement) {
-                        const text = normalize(box.textContent);
-                        if (text.includes('ENDPOINT / REQUEST URL')) {
-                            const candidates = box.querySelectorAll('pre,code,div');
-                            let chosen = null;
-                            candidates.forEach(c => {
-                                if (chosen) return;
-                                const ct = normalize(c.textContent);
-                                if (ct.includes('HTTPS://') || ct.includes('HTTP://')) chosen = c;
-                            });
-                            if (chosen) chosen.classList.add('xs-request-url-box');
-                            break;
-                        }
-                    }
-                });
-
-                // Mark response/code surfaces so their text stays black on white.
-                apiList.querySelectorAll('pre,code').forEach((el) => {
-                    const t = normalize(el.textContent);
-                    if (t.includes('RESPONSE') || t.includes('STATUS') || t.includes('SUCCESS')) {
-                        el.classList.add('xs-response-white');
-                    }
-                });
-            };
-
-            applyStableEndpointUI();
-            if (window.MutationObserver) {
-                new MutationObserver(applyStableEndpointUI).observe(apiList, { childList: true, subtree: true });
-            }
-        })();
-    })();
-</script>
-
-
-<script>
-/* Final UI behavior patch v5: precise element targeting, no broad container styling. */
-(() => {
-  const apiList = document.getElementById('apiList');
-  if (!apiList) return;
-
-  const normalize = (v) => String(v || '').replace(/\s+/g, ' ').trim().toUpperCase();
-  const categoryIcons = {
-    AI: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="7" width="16" height="12" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11h.01M16 11h.01M8 15h8M12 7V4M9 4h6M2 12v4M22 12v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
-    AMPRO: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 12h16M12 4c2.2 2.2 3.3 4.9 3.3 8s-1.1 5.8-3.3 8c-2.2-2.2-3.3-4.9-3.3-8S9.8 6.2 12 4Z" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
-    KOMIKU: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H20v17H7.5A2.5 2.5 0 0 0 5 21.5v-17Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M5 5h12M9 8h7M9 12h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
-    RANDOM: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h5v5M4 6h4c4 0 4 12 8 12h5M16 21h5v-5M4 18h4c1.7 0 2.8-2 3.5-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-    TOOLS: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a5 5 0 0 0-6.4 6.4L3 18l3 3 5.3-5.3a5 5 0 0 0 6.4-6.4l-3 3-2-2 3-3Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-    'XS-PEDIA': '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v14H5z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 9h8M8 12h6M8 15h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
-    OTHER: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="4" width="6" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="4" y="14" width="6" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="6" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="2"/></svg>'
-  };
-
-  const findCategoryCard = (name) => {
-    const nodes = Array.from(apiList.querySelectorAll('*'));
-    for (const node of nodes) {
-      if (normalize(node.textContent) !== name) continue;
-      let el = node;
-      for (let depth = 0; depth < 6 && el && el !== apiList; depth++, el = el.parentElement) {
-        const txt = normalize(el.textContent);
-        if (txt.startsWith(name + ' ') && /\b\d+\s+ENDPOINTS?\b/i.test(txt) && txt.length < 180) return el;
-      }
-    }
-    return null;
-  };
-
-  const addCategoryIconsStable = () => {
-    Object.keys(categoryIcons).forEach((name) => {
-      const card = findCategoryCard(name);
-      if (!card) return;
-      card.classList.add('xs-category-card');
-      const titleNode = Array.from(card.querySelectorAll('*')).find(el => normalize(el.textContent) === name);
-      if (titleNode) titleNode.classList.add('xs-category-title');
-      if (!card.querySelector(':scope > .xs-category-icon')) {
-        const icon = document.createElement('div');
-        icon.className = 'xs-category-icon';
-        icon.setAttribute('aria-hidden', 'true');
-        icon.innerHTML = categoryIcons[name];
-        card.prepend(icon);
-      }
-    });
-  };
-
-  const markExact = () => {
-    const all = Array.from(apiList.querySelectorAll('span,div,p,strong,a,b,button,h1,h2,h3,h4,h5,h6,label'));
-    all.forEach((el) => {
-      const text = normalize(el.textContent);
-      if (text === 'READY') el.classList.add('endpoint-ready-badge');
-      if (text === 'FREE' || text === '✓ FREE') el.classList.add('endpoint-free-badge');
-      if (text === 'VIP') el.classList.add('endpoint-vip-badge');
-      if (text === 'PREMIUM') el.classList.add('endpoint-premium-badge');
-    });
-
-    /* Execute buttons: identify the smallest button containing only Execute text. */
-    apiList.querySelectorAll('button').forEach((btn) => {
-      const t = normalize(btn.textContent);
-      if (t === 'EXECUTE' || t === 'EXECUTE REQUEST' || t === 'SEND REQUEST') {
-        btn.classList.add('xs-execute-button');
-      }
-    });
-
-    /* Ensure URL box + response code boxes are tagged without styling their whole section. */
-    const headings = Array.from(apiList.querySelectorAll('*')).filter(el => normalize(el.textContent) === 'ENDPOINT / REQUEST URL');
-    headings.forEach((heading) => {
-      let parent = heading.parentElement;
-      for (let i = 0; i < 5 && parent; i++, parent = parent.parentElement) {
-        const candidates = Array.from(parent.querySelectorAll('pre,code,input,textarea,div'));
-        const hit = candidates.find(el => /https?:\/\//i.test(el.textContent || el.value || ''));
-        if (hit) {
-          hit.classList.add('xs-request-url-box');
-          if (hit.parentElement) hit.parentElement.classList.add('xs-request-url-box');
-          break;
-        }
-      }
-    });
-
-    apiList.querySelectorAll('pre,code').forEach((el) => {
-      const t = normalize(el.textContent);
-      if (t.includes('RESPONSE') || t.includes('STATUS') || t.includes('SUCCESS') || t.includes('ERROR')) {
-        el.classList.add('xs-response-white');
-      }
-    });
-  };
-
-  const runAll = () => { addCategoryIconsStable(); markExact(); };
-  runAll();
-  if (window.MutationObserver) {
-    let queued = false;
-    new MutationObserver(() => {
-      if (queued) return;
-      queued = true;
-      requestAnimationFrame(() => { queued = false; runAll(); });
-    }).observe(apiList, { childList:true, subtree:true });
-  }
-})();
-</script>
-
-<script>
         function copyText(text, label) {
             if (navigator.clipboard) {
                 navigator.clipboard.writeText(text).then(() => {
@@ -4958,6 +4021,328 @@ function fetchUserProfile() {
         document.addEventListener('DOMContentLoaded', () => {
             fetchUserProfile();
         });
+
+        function getPageDisplayName() {
+            const path = window.location.pathname;
+            let fileName = path.split('/').pop().replace('.html', '').toLowerCase();
+
+            if (!fileName || fileName === '' || fileName === 'index') return 'Home';
+
+            const pageMap = {
+                'home': 'Home',
+                'docs': 'Dokumentasi',
+                'doc': 'Dokumentasi',
+                'status': 'Status Server',
+                'store': 'Store API',
+                'changelog': 'Changelog',
+                'uploader': 'Uploader File',
+                'pastecode': 'Pastecode',
+                'feedback': 'Feedback',
+                'privacy': 'Kebijakan Privasi',
+                'support': 'Dukungan Support',
+                'login': 'Halaman Login'
+            };
+
+            if (pageMap[fileName]) return pageMap[fileName];
+            return fileName.charAt(0).toUpperCase() + fileName.slice(1);
+        }
+
+</script>
+
+
+
+<!-- XS-PEDIA • STABLE LIGHT UI (single scoped override) -->
+<style id="xs-stable-light-ui">
+  :root {
+    --xs-bg: #ffffff;
+    --xs-surface: #ffffff;
+    --xs-surface-soft: #f8fafc;
+    --xs-border: #dbe4ea;
+    --xs-border-strong: #cbd7df;
+    --xs-ink: #0f172a;
+    --xs-muted: #475569;
+    --xs-green: #22c55e;
+    --xs-green-soft: #dcfce7;
+    --xs-blue: #0ea5e9;
+    --xs-blue-soft: #e0f2fe;
+    --xs-gold: #d97706;
+    --xs-gold-soft: #fef3c7;
+    --xs-violet: #8b5cf6;
+    --xs-violet-soft: #f3e8ff;
+    --xs-cyan: #06b6d4;
+  }
+
+  html, body {
+    background: var(--xs-bg) !important;
+    color: var(--xs-ink) !important;
+  }
+
+  html {
+    min-height: 100%;
+  }
+
+  body {
+    min-height: 100vh;
+    font-family: 'Space Grotesk', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    background-image: radial-gradient(#dce5eb 1.15px, transparent 1.15px) !important;
+    background-size: 24px 24px !important;
+    background-attachment: fixed;
+  }
+
+  /* Keep only the visible light presentation. */
+  body.light-mode {
+    background-color: #fff !important;
+    color: var(--xs-ink) !important;
+  }
+
+  #themeToggle,
+  .theme-toggle-btn {
+    display: none !important;
+  }
+
+  #apiList {
+    color: var(--xs-ink) !important;
+  }
+
+  /* Endpoint/category cards: surface only, no broad descendant recoloring. */
+  #apiList > * {
+    background: #fff !important;
+    border-color: var(--xs-border) !important;
+    color: var(--xs-ink) !important;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, .055) !important;
+  }
+
+  /* Endpoint names only. Paths/details keep their own intended colors. */
+  #apiList .endpoint-name,
+  #apiList .endpoint-title,
+  #apiList .api-name,
+  #apiList .api-title,
+  #apiList h3.endpoint-name,
+  #apiList h3.endpoint-title,
+  #apiList h4.endpoint-name,
+  #apiList h4.endpoint-title {
+    color: #000 !important;
+    opacity: 1 !important;
+    text-shadow: none !important;
+  }
+
+  /* Do not hide or recolor the original category icons. */
+  #apiList svg,
+  #apiList img {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  /* The original icon boxes can keep a neutral gray surface. */
+  #apiList .category-icon,
+  #apiList .category-icon-box,
+  #apiList .category-logo,
+  #apiList [data-category-icon] {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  /* Exact role/status badges: style only the badge node, never its container. */
+  #apiList .xs-role-ready {
+    background: var(--xs-green-soft) !important;
+    color: #16a34a !important;
+    border: 2px solid #86efac !important;
+    box-shadow: 0 0 0 1px rgba(134,239,172,.15), 0 0 14px rgba(34,197,94,.24) !important;
+    font-weight: 900 !important;
+    opacity: 1 !important;
+    text-shadow: 0 0 5px rgba(34,197,94,.18) !important;
+  }
+
+  #apiList .xs-role-free {
+    background: var(--xs-blue-soft) !important;
+    color: #0284c7 !important;
+    border: 2px solid #7dd3fc !important;
+    box-shadow: 0 0 0 1px rgba(125,211,252,.15), 0 0 14px rgba(14,165,233,.22) !important;
+    font-weight: 900 !important;
+    opacity: 1 !important;
+    text-shadow: 0 0 5px rgba(14,165,233,.16) !important;
+  }
+
+  #apiList .xs-role-premium {
+    background: var(--xs-gold-soft) !important;
+    color: var(--xs-gold) !important;
+    border: 2px solid #f7c66f !important;
+    box-shadow: 0 0 0 1px rgba(245,158,11,.14), 0 0 16px rgba(245,158,11,.22) !important;
+    font-weight: 900 !important;
+    opacity: 1 !important;
+    filter: none !important;
+  }
+
+  #apiList .xs-role-vip {
+    background: var(--xs-violet-soft) !important;
+    color: var(--xs-violet) !important;
+    border: 2px solid #c084fc !important;
+    box-shadow: 0 0 0 1px rgba(192,132,252,.14), 0 0 16px rgba(168,85,247,.22) !important;
+    font-weight: 900 !important;
+    opacity: 1 !important;
+    filter: none !important;
+  }
+
+  #apiList .xs-role-ready,
+  #apiList .xs-role-free,
+  #apiList .xs-role-premium,
+  #apiList .xs-role-vip {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: .3rem !important;
+    position: relative !important;
+    z-index: 2 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  /* White request/URL/code surfaces. */
+  #apiList .xs-url-surface,
+  #apiList .xs-code-surface,
+  #apiList pre,
+  #apiList code,
+  #apiList textarea,
+  #apiList input:not(#searchInput) {
+    background: #fff !important;
+    color: #0f172a !important;
+    border-color: var(--xs-border-strong) !important;
+    box-shadow: inset 0 0 0 1px rgba(15,23,42,.025) !important;
+    text-shadow: none !important;
+  }
+
+  #apiList pre,
+  #apiList code,
+  #apiList .xs-url-surface,
+  #apiList .xs-code-surface {
+    border-radius: 14px !important;
+  }
+
+  #apiList .xs-url-surface *,
+  #apiList .xs-code-surface * {
+    color: #0f172a !important;
+    background: transparent !important;
+    text-shadow: none !important;
+  }
+
+  #apiList input::placeholder,
+  #apiList textarea::placeholder {
+    color: #64748b !important;
+    opacity: 1 !important;
+  }
+
+  /* Execute: solid, obvious, never transparent. */
+  #apiList .xs-execute-button {
+    background: #06b6d4 !important;
+    color: #082f49 !important;
+    border: 2px solid #0891b2 !important;
+    opacity: 1 !important;
+    box-shadow: 0 7px 18px rgba(6,182,212,.22) !important;
+    text-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+  #apiList .xs-execute-button:hover {
+    background: #0891b2 !important;
+    color: #fff !important;
+  }
+  #apiList .xs-execute-button:disabled,
+  #apiList .xs-execute-button[disabled] {
+    opacity: .6 !important;
+  }
+
+  /* Remove only the endpoint description block. */
+  #apiList .xs-endpoint-description {
+    display: none !important;
+  }
+
+  /* Generic Tailwind dark utility surfaces only when they are clearly marked as code surfaces. */
+  #apiList .xs-url-surface[class*="bg-"],
+  #apiList .xs-code-surface[class*="bg-"],
+  #apiList pre[class*="bg-"],
+  #apiList code[class*="bg-"] {
+    background: #fff !important;
+    color: #0f172a !important;
+  }
+
+  @media (max-width: 640px) {
+    #apiList pre,
+    #apiList code,
+    #apiList .xs-url-surface,
+    #apiList .xs-code-surface {
+      font-size: 12px !important;
+      line-height: 1.6 !important;
+      overflow-wrap: anywhere !important;
+      white-space: pre-wrap !important;
+    }
+  }
+</style>
+
+<script>
+(() => {
+  const apiList = document.getElementById('apiList');
+  if (!apiList) return;
+
+  const norm = (v) => (v || '').replace(/\\s+/g, ' ').trim().toUpperCase();
+
+  const markExactBadges = () => {
+    const nodes = apiList.querySelectorAll('span,button,div,strong,b,label');
+    nodes.forEach((el) => {
+      const t = norm(el.textContent);
+      if (t === 'READY') el.classList.add('xs-role-ready');
+      else if (t === 'FREE' || t === '✓ FREE') el.classList.add('xs-role-free');
+      else if (t === 'PREMIUM' || t === '♛ PREMIUM' || t === '👑 PREMIUM') el.classList.add('xs-role-premium');
+      else if (t === 'VIP' || t === '♦ VIP' || t === '♢ VIP') el.classList.add('xs-role-vip');
+    });
+  };
+
+  const markButton = () => {
+    apiList.querySelectorAll('button,a').forEach((el) => {
+      if (norm(el.textContent) === 'EXECUTE') el.classList.add('xs-execute-button');
+    });
+  };
+
+  const markDescription = () => {
+    apiList.querySelectorAll('div,section,article,header,p,span,strong').forEach((el) => {
+      if (norm(el.textContent) !== 'DESKRIPSI ENDPOINT') return;
+      let p = el;
+      for (let i = 0; i < 4 && p && p !== apiList; i++) {
+        const txt = norm(p.textContent);
+        if (txt.startsWith('DESKRIPSI ENDPOINT') && txt.length <= 220) {
+          p.classList.add('xs-endpoint-description');
+          break;
+        }
+        p = p.parentElement;
+      }
+    });
+  };
+
+  const markCodeSurfaces = () => {
+    const candidates = apiList.querySelectorAll('div,pre,code');
+    candidates.forEach((el) => {
+      if (el.classList.contains('xs-role-ready') || el.classList.contains('xs-role-free') ||
+          el.classList.contains('xs-role-premium') || el.classList.contains('xs-role-vip')) return;
+      const txt = (el.textContent || '').trim();
+      if (!txt) return;
+      const hasUrl = /^https?:\\/\\//i.test(txt) || txt.includes('https://');
+      const hasCurl = /^curl\\s/i.test(txt);
+      const looksLikeCode = hasUrl || hasCurl;
+      if (!looksLikeCode) return;
+      if (txt.length < 1800) el.classList.add(hasUrl ? 'xs-url-surface' : 'xs-code-surface');
+    });
+  };
+
+  const apply = () => {
+    markExactBadges();
+    markButton();
+    markDescription();
+    markCodeSurfaces();
+  };
+
+  apply();
+  if (window.MutationObserver) {
+    new MutationObserver(() => apply()).observe(apiList, { childList: true, subtree: true });
+  }
+})();
 </script>
 
 </body>
