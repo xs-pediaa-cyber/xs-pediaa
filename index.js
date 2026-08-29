@@ -35,19 +35,19 @@ app.use(express.json({
 app.use(cookieParser());
 app.set('trust proxy', 1);
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://db_ryuuxiao:db_ryuuxiao@cluster0.sj28lxh.mongodb.net/?appName=Cluster0'; 
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://arulz-xd-owner:Haqqi0213@cluster0.fgxhxqm.mongodb.net/?appName=Cluster0'; 
 
 mongoose.connect(MONGODB_URI)
     .then(() => console.log('📦 Berhasil terhubung ke MongoDB!'))
     .catch(err => console.error('❌ Gagal koneksi ke MongoDB:', err));
 
-const JWT_SECRET = process.env.JWT_SECRET || 'arulzxd-super-secret-jwt-key-999';
+const JWT_SECRET = process.env.JWT_SECRET || 'xs-pedia-super-secret-jwt-key-999';
 
 // ====================================================
 // HELPER GENERATOR API KEY SESUAI ATURAN
 // ====================================================
 function generateFreeApiKey() {
-    return 'arulzxdfree-' + crypto.randomBytes(3).toString('hex').slice(0, 5);
+    return 'xs-pedia' + crypto.randomBytes(3).toString('hex').slice(0, 5);
 }
 
 function generatePremiumApiKey(username) {
@@ -89,7 +89,7 @@ userSchema.pre('save', function() {
                 this.apikey = generatePremiumApiKey(this.username);
             }
         } else {
-            if (!this.apikey || !this.apikey.startsWith('arulzxdfree-')) {
+            if (!this.apikey || !this.apikey.startsWith('xs-pedia')) {
                 this.apikey = generateFreeApiKey();
             }
         }
@@ -207,7 +207,7 @@ app.post('/api/user/update-avatar', checkAuthSession, (req, res) => {
                 username: updatedUser.username,
                 email: updatedUser.email,
                 name: updatedUser.username,
-                avatar: updatedUser.avatar,
+                avatar: updatedUser.avatar?.startsWith('data:') ? null : updatedUser.avatar,
                 role: updatedUser.role,
                 apikey: updatedUser.apikey
             };
@@ -280,7 +280,7 @@ app.post('/api/user/custom-apikey', checkAuthSession, async (req, res) => {
             username: user.username,
             email: user.email,
             name: user.username,
-            avatar: user.avatar,
+            avatar: user.avatar?.startsWith('data:') ? null : user.avatar,
             role: user.role,
             apikey: user.apikey
         };
@@ -1168,7 +1168,7 @@ app.post('/webhook', async (req, res) => {
                                 if (targetRole === "Premium User") {
                                     targetUser.apikey = generatePremiumApiKey(targetUser.username);
                                 } else if (targetRole === "VIP User") {
-                                    if (!targetUser.apikey || targetUser.apikey.startsWith('arulzxdfree-')) {
+                                    if (!targetUser.apikey || targetUser.apikey.startsWith('xs-pedia')) {
                                         targetUser.apikey = `${targetUser.username.toLowerCase()}-custom-vip`;
                                     }
                                 }
@@ -1339,13 +1339,6 @@ function sendSweetAlert(res, icon, title, text, redirectUrl) {
     `);
 }
 
-// --- AUTH PAGE ALIASES ---
-// Railway/browser GET requests to these action URLs should not return
-// `Cannot GET ...`; the actual authentication handlers remain POST routes.
-app.get('/auth/login', (req, res) => res.redirect('/login'));
-app.get('/auth/register', (req, res) => res.redirect('/login'));
-app.get('/auth/forgot-password', (req, res) => res.redirect('/login'));
-
 // --- LOGIN ROUTE (MUREN MONGODB) ---
 app.post('/auth/login', (req, res, next) => {
     passport.authenticate('local', async (err, user, info) => { 
@@ -1375,7 +1368,7 @@ app.post('/auth/login', (req, res, next) => {
                         needSave = true;
                     }
                 } else {
-                    if (!user.apikey || !user.apikey.startsWith('arulzxdfree-')) {
+                    if (!user.apikey || !user.apikey.startsWith('xs-pedia')) {
                         user.apikey = generateFreeApiKey();
                         needSave = true;
                     }
@@ -1390,7 +1383,7 @@ app.post('/auth/login', (req, res, next) => {
                     username: user.username,
                     email: user.email,
                     name: user.username,
-                    avatar: user.avatar || 'https://arulz-xd.my.id/files/X1F0Cn.png',
+                    avatar: user.avatar?.startsWith('data:') ? null : (user.avatar || 'https://arulz-xd.my.id/files/X1F0Cn.png'),
                     role: user.role,     
                     apikey: user.apikey   
                 };
@@ -1754,7 +1747,7 @@ app.get('/auth/github/callback', async (req, res) => {
             username: dbUser.username,
             email: dbUser.email,
             name: userData.name || dbUser.username,
-            avatar: dbUser.avatar,
+            avatar: dbUser.avatar?.startsWith('data:') ? null : dbUser.avatar,
             role: dbUser.role,
             apikey: dbUser.apikey
         };
@@ -1918,7 +1911,7 @@ const c = 'p';
 const to = '_WaSUBUjo7g3YcCcyo'; 
 const ken = 'OgBEWRKS16qYr1C8Gyg'; 
 const githubToken = `${a}${b}${c}${to}${ken}`;
-const owner = 'arulzzzxd'; 
+const owner = 'xs-pedia'; 
 const branch = 'main';
 
 const getRandomRepo = () => repoList[Math.floor(Math.random() * repoList.length)];
@@ -2827,9 +2820,22 @@ app.get('/api/user-activity', async (req, res) => {
                 hour12: false,
                 timeZone: 'Asia/Jakarta'
             });
-            const statusStr = item.status_code >= 200 && item.status_code < 300 ? 'OK' : 'ERR';
+            const statusCode = Number(item.status_code) || 0;
+            const statusStr = statusCode >= 200 && statusCode < 300 ? 'OK' : 'ERR';
+            const dateStr = date.toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                timeZone: 'Asia/Jakarta'
+            });
 
-            return `[${timeStr}] [${statusStr}] [${item.method}] : ${item.endpoint}`;
+            return {
+                method: item.method || 'GET',
+                endpoint: item.endpoint || '/',
+                statusCode,
+                status: statusStr,
+                time: timeStr,
+                date: dateStr
+            };
         });
 
         return res.json({ status: true, data: formattedLogs });
@@ -3077,7 +3083,7 @@ app.get('/docs', (req, res) => {
         position: fixed;
         inset: 0;
         z-index: 99999;
-        background-color: var(--bg-dark);
+        background:linear-gradient(135deg,#f4fff1,#dff7df,#fffdf3);
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -3222,7 +3228,7 @@ app.get('/docs', (req, res) => {
 }
 </style>
 </head>
-<body class="min-h-screen antialiased bg-[#020617] text-slate-100 relative">
+<body class="min-h-screen antialiased text-slate-900 relative">
 
 <div id="cyber-loader-overlay">
     <div class="scanner-beam"></div>
@@ -3301,152 +3307,226 @@ app.get('/docs', (req, res) => {
       </div>
     </div>
     
+<!-- Bright Comic Green Theme Overrides -->
+<style>
+  :root{
+    --comic-ink:#244235;
+    --comic-green:#48c774;
+    --comic-green-2:#8be28f;
+    --comic-mint:#effff0;
+    --comic-cream:#fffdf5;
+    --comic-border:#b8dcb8;
+  }
+  body{
+    background:
+      radial-gradient(circle at 10% 0%, rgba(139,226,143,.42), transparent 34%),
+      radial-gradient(circle at 100% 20%, rgba(72,199,116,.25), transparent 30%),
+      linear-gradient(135deg,#f7fff5 0%,#ecfff0 48%,#fdfcf3 100%) !important;
+    color:var(--comic-ink) !important;
+    font-family: Georgia,'Times New Roman',serif !important;
+  }
+  body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.22;background-image:radial-gradient(#67b978 1px,transparent 1px);background-size:18px 18px;z-index:-1}
+  .glass-panel{background:rgba(255,255,252,.9)!important;border:2px solid rgba(94,151,100,.22)!important;box-shadow:0 8px 24px rgba(69,114,76,.10)!important;color:#31513e!important}
+  .light-mode .glass-panel{background:rgba(255,255,252,.96)!important;border-color:rgba(94,151,100,.24)!important}
+  .light-mode{background:transparent!important;color:var(--comic-ink)!important}
+  .light-mode #mainTitle,.light-mode #mainDescription,.light-mode #no-results-title{color:var(--comic-ink)!important}
+  .filter-btn{border:2px solid #afd8af!important;background:rgba(255,255,255,.7)!important;color:#547161!important;border-radius:999px!important;padding:10px 18px!important;font-family:Georgia,'Times New Roman',serif!important;font-size:14px!important;font-weight:700!important;box-shadow:4px 4px 0 rgba(95,137,100,.12);white-space:nowrap}
+  .filter-btn:hover{background:#eaffea!important;color:#31513e!important}
+  .filter-btn.active{background:linear-gradient(135deg,#35b86a,#8fe28c)!important;color:#123b24!important;border-color:#54bc71!important}
+  .category-scroll{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;scroll-snap-type:x proximity!important;padding:4px 4px 12px!important;-webkit-overflow-scrolling:touch}
+  .category-scroll .filter-btn{flex:0 0 auto!important;scroll-snap-align:start}
+  #bioDropdown{background:linear-gradient(180deg,#fbfff8,#edffef)!important;border-left:2px solid #9dce9e!important;color:#355040!important}
+  #bioDropdown .menu-link span{color:#4e6d58!important}
+  #bioDropdown .menu-link:hover{background:#e6f8e7!important}
+  #bioDropdown nav>div{color:#6c8a73!important}
+  .music-player-card{background:rgba(255,255,252,.94)!important;border:2px solid #c4dfc2!important;box-shadow:0 8px 24px rgba(69,114,76,.10)!important}
+  .music-text-title{color:#31513e!important}.music-text-artist{color:#6f8274!important}
+  #profilePopup{font-family:Georgia,'Times New Roman',serif}
+  #profilePopup .profile-card{background:linear-gradient(145deg,#fbfff8,#fffdf7)!important;border:2px solid #acd5ac!important;box-shadow:0 18px 50px rgba(49,101,59,.18)!important}
+  #profilePopup .profile-chip{background:linear-gradient(135deg,#f1fff0,#e6f9e7)!important;border:2px solid #6bb274!important;color:#477259!important;box-shadow:4px 4px 0 rgba(94,151,100,.10)}
+  #profilePopup .profile-docs{background:linear-gradient(135deg,#2c9a5f,#79c66d)!important;box-shadow:5px 5px 0 rgba(55,122,77,.12)!important}
+  #profilePopup .profile-main{background:rgba(255,255,250,.95)!important;border:2px solid #d0e6ce!important}
+  #profilePopup .profile-row{border-bottom:2px dashed #cde2ca!important}
+  #profilePopup .profile-badge{background:linear-gradient(135deg,#dff4df,#f2fbec)!important;color:#52705b!important}
+  #profilePopup .profile-key-box,#profilePopup .profile-log{background:linear-gradient(135deg,#f2fbef,#fffdf7)!important;border:2px solid #d0e3cc!important}
+  #profilePopup .profile-copy,#profilePopup .profile-upgrade{background:linear-gradient(135deg,#e7f8e6,#f5f8ed)!important;border:2px solid #6eb176!important;color:#4c7259!important;box-shadow:4px 4px 0 rgba(85,132,90,.10)}
+  #profilePopup .profile-upgrade{background:linear-gradient(135deg,#2f925a,#7bc96c)!important;color:#fff!important;border:0!important}
+  #profilePopup .profile-footer .profile-close{background:#f8fff6!important;border:2px solid #b8d9b5!important;color:#385843!important}
+  #profilePopup .profile-footer .profile-logout{background:#fff7f7!important}
+  #profilePopup .profile-avatar-ring{border:3px solid #72a974!important;box-shadow:5px 5px 0 rgba(91,133,94,.10)!important}
+  #profilePopup .profile-camera{background:linear-gradient(135deg,#3c9e62,#83cb74)!important;border-color:#fff!important}
+  #profilePopup .profile-title{color:#294335!important}
+  #profilePopup .profile-subtitle{color:#6c8174!important}
+  #profilePopup .profile-label{color:#718176!important}
+  #profilePopup .profile-value,#profilePopup .profile-name{color:#30483b!important}
+  #profilePopup .profile-value.accent{color:#4c805d!important}
+  @media(max-width:640px){
+    #profilePopup .profile-wrap{padding:10px!important}
+    #profilePopup .profile-card{max-width:430px!important;border-radius:24px!important;padding:12px!important}
+    #profilePopup .profile-main{padding:15px 13px!important}
+    #profilePopup .profile-title{font-size:26px!important}
+    #profilePopup .profile-subtitle{font-size:13px!important}
+    #profilePopup .profile-identity{gap:10px!important}
+    #profilePopup .profile-avatar-wrap{width:70px!important;height:70px!important;flex-basis:70px!important}
+    #profilePopup .profile-name{font-size:18px!important}
+    #profilePopup .profile-row{padding:10px 0!important}
+    #profilePopup .profile-label{font-size:13px!important}
+    #profilePopup .profile-value{font-size:13px!important}
+    #profilePopup .profile-section{margin-top:13px!important}
+    #profilePopup .profile-section-title{font-size:13px!important}
+    #profilePopup .profile-log{grid-template-columns:auto minmax(0,1fr)!important}
+    #profilePopup .profile-log-meta{grid-column:2!important;text-align:left!important;margin-top:-2px!important}
+  }
+</style>
+
 <!-- User Profile Pop-up Modal -->
-<div id="profilePopup" class="fixed inset-0 z-[99999] hidden">
-  <div class="fixed inset-0 bg-black/85 backdrop-blur-md" onclick="closeProfilePopup()"></div>
-  <div class="fixed inset-0 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-    
-    <div class="w-full max-w-[410px] cyber-popup-bg border-2 border-cyan-400 rounded-[32px] p-4 sm:p-5 shadow-[0_0_45px_rgba(0,243,255,0.4)] relative font-mono text-cyan-400 my-auto">
-        
-        <div class="flex items-center justify-between mb-5 gap-2">
-            <div class="relative w-20 h-20 sm:w-22 sm:h-22 flex-shrink-0">
-                <input type="file" id="avatarInput" accept="image/*" class="hidden" onchange="uploadAvatarFile(this)">
-                <div class="relative cursor-pointer w-full h-full" onclick="document.getElementById('avatarInput').click()">
-                    <div class="w-full h-full rounded-full p-[3px] border-2 border-cyan-400 shadow-[0_0_18px_rgba(0,243,255,0.8)] overflow-hidden">
-                        <img id="userAvatar" src="https://arulz-xd.my.id/files/X1F0Cn.png" class="w-full h-full rounded-full object-cover">
-                    </div>
-                    <div class="absolute bottom-0 right-0 bg-[#010811] text-cyan-400 p-1.5 rounded-full border border-cyan-400 shadow-[0_0_10px_rgba(0,243,255,0.8)]">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"/>
-                            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex-1 flex flex-col gap-3 min-w-0 px-2">
-                <div class="cyber-pill-capsule py-1.5 px-4 text-center truncate">
-                    <span id="userName" class="text-xs font-bold text-cyan-300 tracking-widest">loading...</span>
-                </div>
-                <div class="cyber-pill-capsule py-1.5 px-4 text-center truncate">
-                    <span id="userEmail" class="text-[11px] text-cyan-300 tracking-wider">loading_email@gmail.com</span>
-                </div>
-            </div>
-
-            <div id="planBoxContainer" class="relative w-20 h-28 flex flex-col items-center justify-center flex-shrink-0">
-                <svg class="w-full h-full filter drop-shadow-[0_0_8px_rgba(0,243,255,0.6)]" viewBox="0 0 100 130" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <linearGradient id="cyberGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#00f3ff" />
-                            <stop offset="50%" stop-color="#38bdf8" />
-                            <stop offset="100%" stop-color="#c084fc" />
-                        </linearGradient>
-
-                        <linearGradient id="greenGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" stop-color="#4ade80" />
-                            <stop offset="100%" stop-color="#16a34a" />
-                        </linearGradient>
-                    </defs>
-
-                    <text x="50" y="14" fill="#00f3ff" font-size="9" font-weight="900" font-family="monospace" text-anchor="middle" letter-spacing="0.5">USER</text>
-                    <text x="50" y="24" fill="#00f3ff" font-size="9" font-weight="900" font-family="monospace" text-anchor="middle" letter-spacing="0.5">PLAN</text>
-
-                    <path d="M 20 31 L 8 47 L 18 80 L 25 68 L 20 48 Z" fill="url(#cyberGrad)" opacity="0.95"/>
-                    <path d="M 20 31 L 8 47 L 18 80" stroke="#00f3ff" stroke-width="1.5" stroke-linejoin="round"/>
-
-                    <path d="M 80 31 L 92 47 L 82 80 L 75 68 L 80 48 Z" fill="url(#cyberGrad)" opacity="0.95"/>
-                    <path d="M 80 31 L 92 47 L 82 80" stroke="#c084fc" stroke-width="1.5" stroke-linejoin="round"/>
-
-                    <path d="M 50 40 L 76 49 L 78 82 L 50 112 L 22 82 L 24 49 Z" fill="#010811" stroke="url(#cyberGrad)" stroke-width="2.5" stroke-linejoin="round"/>
-
-                    <path d="M 50 46 L 71 53 L 73 79 L 50 104 L 27 79 L 29 53 Z" fill="#020d1a" stroke="url(#cyberGrad)" stroke-width="1.5" stroke-linejoin="round"/>
-
-                    <path d="M 42 41 L 50 48 L 58 41 L 58 46 L 50 53 L 42 46 Z" fill="url(#greenGrad)" stroke="#22c55e" stroke-width="0.8"/>
-
-                    <text id="userPlanText" x="50" y="80" fill="#00f3ff" font-size="20" font-weight="900" font-family="sans-serif" text-anchor="middle" letter-spacing="1">FREE</text>
-                </svg>
-            </div>
+<style>
+  #profilePopup .profile-shell{font-family:Georgia,'Times New Roman',serif;color:#52645a}
+  #profilePopup .profile-card{background:linear-gradient(145deg,#f8fbf5,#fffdf9);border:1.5px solid #cfe1cc;border-radius:24px;box-shadow:0 18px 50px rgba(47,90,61,.16)}
+  #profilePopup .profile-chip{display:inline-flex;align-items:center;gap:8px;background:#eef6ea;border:1.5px solid #78a96d;border-radius:999px;color:#47765a;font-weight:700;letter-spacing:2px;font-size:11px;padding:7px 14px;text-transform:uppercase}
+  #profilePopup .profile-title{font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:1.05;font-weight:800;color:#304338;margin:14px 0 6px}
+  #profilePopup .profile-subtitle{font-size:14px;line-height:1.45;color:#708078;margin:0 0 14px}
+  #profilePopup .profile-docs{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:linear-gradient(135deg,#2f6f52,#6f9f67);color:#fff;border-radius:999px;padding:12px 16px;font-weight:800;font-size:16px;text-decoration:none;box-shadow:0 7px 18px rgba(47,111,82,.18)}
+  #profilePopup .profile-main{background:rgba(255,255,252,.92);border:1.5px solid #d6e5d1;border-radius:22px;padding:20px 20px 18px}
+  #profilePopup .profile-identity{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+  #profilePopup .profile-avatar-wrap{position:relative;width:82px;height:82px;flex:0 0 82px}
+  #profilePopup .profile-avatar-ring{width:100%;height:100%;border-radius:50%;padding:2px;border:2px solid #6f9f67;background:#fff;overflow:hidden;box-shadow:0 4px 14px rgba(62,107,72,.12)}
+  #profilePopup .profile-avatar{width:100%;height:100%;border-radius:50%;object-fit:cover;background:#eef5eb}
+  #profilePopup .profile-camera{position:absolute;right:-4px;bottom:-3px;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#3d7b5b,#74a36c);color:#fff;border:3px solid #fffdf9;box-shadow:0 4px 10px rgba(47,90,61,.2)}
+  #profilePopup .profile-name{font-size:22px;font-weight:800;color:#304338;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #profilePopup .profile-email{margin-top:5px;font-size:14px;color:#718079;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #profilePopup .profile-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 0;border-bottom:1.5px dashed #d7e5d3}
+  #profilePopup .profile-row:last-child{border-bottom:0}
+  #profilePopup .profile-label{font-size:14px;font-weight:700;color:#718079}
+  #profilePopup .profile-value{font-family:'Courier New',monospace;font-size:15px;font-weight:800;color:#304338;text-align:right;min-width:0}
+  #profilePopup .profile-value.accent{color:#4f815f}
+  #profilePopup .profile-badge{background:linear-gradient(135deg,#dcebd7,#eef5e9);color:#52705b;border-radius:999px;padding:6px 13px;font-size:13px;font-weight:800}
+  #profilePopup .profile-actions{display:flex;align-items:center;gap:8px;min-width:0;max-width:100%}
+  #profilePopup .profile-upgrade{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:14px;border:0;border-radius:999px;background:linear-gradient(135deg,#315f49,#78a96d);color:#fff;padding:12px 16px;font-size:15px;font-weight:800;box-shadow:0 7px 18px rgba(49,95,73,.16)}
+  #profilePopup .profile-section{margin-top:16px}
+  #profilePopup .profile-section-title{font-size:14px;font-weight:800;color:#60766a;margin-bottom:8px}
+  #profilePopup .profile-key-box{background:linear-gradient(135deg,#f3f8ef,#fafbf6);border:1.5px solid #d3e2ce;border-radius:16px;padding:10px 12px}
+  #profilePopup .profile-key{font-family:'Courier New',monospace;font-size:14px;font-weight:800;color:#42534a;word-break:break-all}
+  #profilePopup .profile-copy{margin-top:8px;width:100%;border:1.5px solid #6f9f67;border-radius:999px;background:linear-gradient(135deg,#eaf4e6,#f5f8ef);color:#4f725b;padding:10px 12px;font-size:12px;font-weight:800;letter-spacing:1.1px}
+  #profilePopup .profile-activity{max-height:190px;overflow:auto;display:flex;flex-direction:column;gap:8px;padding-right:2px}
+  #profilePopup .profile-log{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;background:linear-gradient(135deg,#f4f7ef,#fbf8f0);border:1.5px solid #dce5d6;border-radius:13px;padding:9px 10px;font-family:'Courier New',monospace;min-width:0}
+  #profilePopup .profile-log-method{background:#fffdf7;border:1.5px solid #d9dfd0;border-radius:7px;padding:4px 7px;font-size:10px;font-weight:800;color:#6c786f}
+  #profilePopup .profile-log-endpoint{min-width:0;font-size:11px;font-weight:800;color:#35473d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #profilePopup .profile-log-meta{text-align:right;white-space:nowrap;font-size:10px;font-weight:800}
+  #profilePopup .profile-log-status.ok{color:#5d8b66}
+  #profilePopup .profile-log-status.err{color:#ad5960}
+  #profilePopup .profile-log-date{display:block;color:#847e76;font-weight:600;margin-top:2px}
+  #profilePopup .profile-footer{display:flex;gap:8px;margin-top:14px}
+  #profilePopup .profile-close{flex:1;border:1.5px solid #cfe1cc;border-radius:999px;background:#fffefb;color:#35513e;padding:10px;font-weight:800;font-size:13px}
+  #profilePopup .profile-logout{flex:1;border:1.5px solid #d78a91;border-radius:999px;background:#fff8f8;color:#a25059;padding:10px;font-weight:800;font-size:13px;text-align:center;text-decoration:none}
+  @media (max-width:480px){
+    #profilePopup .profile-wrap{padding:8px}
+    #profilePopup .profile-card{border-radius:22px;max-height:calc(100vh - 16px);overflow:auto}
+    #profilePopup .profile-main{padding:17px 15px 16px}
+    #profilePopup .profile-title{font-size:27px}
+    #profilePopup .profile-subtitle{font-size:13px}
+    #profilePopup .profile-identity{gap:12px}
+    #profilePopup .profile-avatar-wrap{width:74px;height:74px;flex-basis:74px}
+    #profilePopup .profile-name{font-size:19px}
+    #profilePopup .profile-email{font-size:13px}
+    #profilePopup .profile-row{padding:11px 0}
+    #profilePopup .profile-value{font-size:14px}
+    #profilePopup .profile-docs{font-size:15px;padding:11px 14px}
+    #profilePopup .profile-log{grid-template-columns:auto minmax(0,1fr);gap:7px}
+    #profilePopup .profile-log-meta{grid-column:2;text-align:left;margin-top:-3px}
+  }
+</style>
+<div id="profilePopup" class="fixed inset-0 z-[99999] hidden" style="display:none" aria-hidden="true">
+  <div class="fixed inset-0 bg-[#183024]/25 backdrop-blur-[2px]" onclick="closeProfilePopup()"></div>
+  <div class="fixed inset-0 overflow-y-auto">
+    <div class="profile-wrap min-h-full flex items-start sm:items-center justify-center p-3 sm:p-5">
+      <div class="profile-card profile-shell w-full max-w-[560px] p-4 sm:p-5 my-auto relative">
+        <div class="profile-chip">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+          ACCOUNT SETTINGS
         </div>
 
-        <!-- Section 1: Api Key Kamu -->
-        <div class="double-border-cyan rounded-2xl p-3 mb-4 relative">
-            <div class="flex items-center justify-between mb-2">
-                <span class="text-[10px] font-bold text-cyan-300 border border-cyan-400 bg-[#010811] px-2.5 py-0.5 rounded-md">Api Key Kamu :</span>
-                <svg class="w-20 h-4 text-cyan-400 opacity-80" viewBox="0 0 100 20" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M0 10 L60 10 L75 2 L90 2" />
-                    <circle cx="92" cy="2" r="2" fill="currentColor"/>
-                    <circle cx="98" cy="2" r="1.5" fill="#fcd34d"/>
-                </svg>
-            </div>
-            
-            <div class="cyber-pill-capsule text-cyan-200 text-xs font-bold py-1.5 px-3 truncate mb-3 text-center tracking-wider">
-                <span id="userApiKey">loading-key</span>
-            </div>
+        <div class="profile-title">User Profile</div>
+        <p class="profile-subtitle">Manage your account settings, daily limits, and API credentials.</p>
 
-            <!-- Fitur Custom Api Key Khusus VIP User -->
-            <div id="vipCustomKeyBox" class="hidden mb-3">
-                <div class="flex gap-1.5">
-                    <input type="text" id="customApiKeyInput" placeholder="Ketik Custom API Key..." class="w-full bg-[#010a14] border border-cyan-400 rounded-xl px-3 py-1.5 text-xs text-cyan-300 placeholder-cyan-700 focus:outline-none font-bold">
-                    <button onclick="saveCustomApiKey()" class="gold-metallic-button text-[10px] px-3 rounded-xl uppercase font-extrabold whitespace-nowrap">SIMPAN</button>
-                </div>
-            </div>
-            
-            <button onclick="copyText(document.getElementById('userApiKey').innerText, 'API Key')" class="w-full gold-metallic-button text-xs py-2 rounded-xl uppercase tracking-widest active:scale-95 transition-all">
-                SALIN API KEY
-            </button>
-        </div>
+        <a href="/docs" class="profile-docs">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l3 3v17H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"/><path d="M14 2v5h5M8 12h8M8 16h8"/></svg>
+          API Docs
+        </a>
 
-        <!-- Section 2: Limit User -->
-        <div class="double-border-cyan rounded-2xl p-3 mb-4 text-center relative">
-            <div class="w-full cyan-solid-header text-[11px] py-1 rounded-xl uppercase tracking-widest mb-3">
-                LIMIT USER
+        <div class="profile-main mt-4">
+          <div class="profile-identity">
+            <div class="profile-avatar-wrap">
+              <input type="file" id="avatarInput" accept="image/*" class="hidden" onchange="uploadAvatarFile(this)">
+              <div class="profile-avatar-ring cursor-pointer" onclick="document.getElementById('avatarInput').click()">
+                <img id="userAvatar" src="https://arulz-xd.my.id/files/X1F0Cn.png" class="profile-avatar">
+              </div>
+              <div class="profile-camera cursor-pointer" onclick="document.getElementById('avatarInput').click()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 7h3l1.4-2h5.2L16 7h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="3.5"/></svg>
+              </div>
             </div>
-            
-            <div class="absolute right-3 top-2 pointer-events-none opacity-40">
-                <svg class="w-12 h-6 text-cyan-400" viewBox="0 0 50 30" fill="none" stroke="currentColor">
-                    <path d="M0 15 L25 15 L35 5 L45 5" stroke-width="1.5"/>
-                    <circle cx="47" cy="5" r="2" fill="currentColor"/>
-                </svg>
+            <div class="min-w-0 flex-1">
+              <div id="userName" class="profile-name">loading...</div>
+              <div id="userEmail" class="profile-email">loading_email@gmail.com</div>
             </div>
+          </div>
 
-            <div class="py-0.5">
-                <span class="inline-block cyber-pill-capsule text-cyan-300 px-6 py-1 text-sm font-bold tracking-widest">
-                    <span id="popupLimitUsed">0</span> / <span id="popupLimitMax">100</span>
-                </span>
-            </div>
-        </div>
+          <div class="profile-row">
+            <span class="profile-label">Subscription Plan</span>
+            <span id="userPlanTextBadge" class="profile-badge"><span id="userPlanText">FREE</span></span>
+          </div>
 
-        <!-- Section 3: Aktifitas Request API Terakhir -->
-        <div class="double-border-cyan rounded-2xl p-3 mb-4">
-            <div class="w-full cyan-solid-header text-[11px] py-1 rounded-xl uppercase tracking-widest mb-3 text-center">
-                AKTIFITAS REQUEST API TERAKHIR
+          <div class="profile-row">
+            <span class="profile-label">Username</span>
+            <div class="profile-actions">
+              <span id="userUsername" class="profile-value truncate">-</span>
             </div>
-            
-            <div id="activityLogsContainer" class="space-y-2 max-h-44 overflow-y-auto pr-1">
-                <div class="cyber-pill-capsule text-cyan-300 text-[10px] py-1.5 px-3 text-center truncate">
-                    belum ada request
-                </div>
-            </div>
-        </div>
+          </div>
 
-        <!-- Buttons Footer -->
-        <div class="space-y-2.5">
-            <a href="/upgrade-apikey" class="w-full gold-metallic-button text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 uppercase tracking-widest active:scale-95 transition-all">
-                <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                UPGRADE
+          <div class="profile-row">
+            <span class="profile-label">Email</span>
+            <div class="profile-actions">
+              <span id="userEmailRow" class="profile-value truncate">-</span>
+            </div>
+          </div>
+
+          <div class="profile-row">
+            <span class="profile-label">Daily Limit</span>
+            <span class="profile-value"><span id="popupLimitUsed">0</span> / <span id="popupLimitMax">100</span></span>
+          </div>
+
+          <div class="profile-section">
+            <div class="profile-section-title">API Key</div>
+            <div class="profile-key-box"><span id="userApiKey" class="profile-key">loading-key</span></div>
+            <div id="vipCustomKeyBox" class="hidden mt-3">
+              <div class="flex gap-2">
+                <input type="text" id="customApiKeyInput" placeholder="Ketik Custom API Key..." class="flex-1 bg-[#fffefb] border border-[#cfe1cc] rounded-full px-4 py-2.5 text-sm text-[#4a5c51] outline-none">
+                <button onclick="saveCustomApiKey()" class="profile-copy mt-0 !w-auto !px-4 whitespace-nowrap">SIMPAN</button>
+              </div>
+            </div>
+            <button onclick="copyText(document.getElementById('userApiKey').innerText, 'API Key')" class="profile-copy">SALIN API KEY</button>
+          </div>
+
+          <div class="profile-section">
+            <div class="profile-section-title">Recent API Activity</div>
+            <div id="activityLogsContainer" class="profile-activity">
+              <div class="profile-log"><span class="profile-log-method">GET</span><span class="profile-log-endpoint">belum ada request</span><span></span></div>
+            </div>
+          </div>
+
+          <a href="/upgrade-apikey" class="profile-upgrade">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 0 0 .95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 0 0-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 0 0-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 0 0-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 0 0 .951-.69l1.07-3.292z"/></svg>
+            Upgrade Plan / VIP
+          </a>
+
+          <div class="profile-footer">
+            <button onclick="closeProfilePopup()" class="profile-close">TUTUP</button>
+            <a href="/auth/logout" class="profile-logout">
+              <span class="inline-flex items-center justify-center gap-2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 16l4-4-4-4M21 12H7M13 5V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2-2h5a2 2 0 0 0 2-2v-1"/></svg> LOG OUT</span>
             </a>
-
-            <div class="flex gap-2">
-                <button onclick="closeProfilePopup()" class="flex-1 cyber-pill-capsule hover:bg-[#03203c] text-cyan-300 font-bold text-xs py-2 uppercase tracking-widest transition-all active:scale-95">
-                    TUTUP
-                </button>
-                <a href="/auth/logout" class="flex-1 border border-red-500/80 bg-[#140306] hover:bg-red-950 text-red-400 font-bold text-xs py-2 rounded-full flex items-center justify-center gap-1.5 uppercase tracking-widest transition-all active:scale-95">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-                    LOG OUT
-                </a>
-            </div>
+          </div>
         </div>
-
+      </div>
     </div>
   </div>
 </div>
@@ -3766,7 +3846,7 @@ app.get('/docs', (req, res) => {
                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
             </div>
-            <div id="categoryFilters" class="flex flex-wrap gap-2 mt-4 justify-start md:justify-center overflow-x-auto pb-2 scrollbar-hide max-w-4xl mx-auto"></div>
+            <div id="categoryFilters" class="category-scroll flex flex-nowrap gap-3 mt-4 justify-start overflow-x-auto pb-3 scrollbar-hide max-w-4xl mx-auto"></div>
         </div>
 
         <div id="noResults" class="text-center py-12 hidden">
@@ -3815,12 +3895,24 @@ app.get('/docs', (req, res) => {
         }
 
         function openProfilePopup() {
-            document.getElementById('profilePopup').classList.remove('hidden');
+            const popup = document.getElementById('profilePopup');
+            const menu = document.getElementById('bioDropdown');
+            if (!popup) return;
+            if (menu) menu.classList.add('translate-x-full');
+            popup.classList.remove('hidden');
+            popup.style.display = 'block';
+            popup.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('overflow-hidden');
             fetchUserProfile();
         }
 
         function closeProfilePopup() {
-            document.getElementById('profilePopup').classList.add('hidden');
+            const popup = document.getElementById('profilePopup');
+            if (!popup) return;
+            popup.classList.add('hidden');
+            popup.style.display = 'none';
+            popup.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('overflow-hidden');
         }
 
         function showWelcomePopup() {
@@ -3891,73 +3983,92 @@ app.get('/docs', (req, res) => {
             if (!input.files || !input.files[0]) return;
 
             const file = input.files[0];
-            const formData = new FormData();
-            formData.append('avatar', file);
+            if (!file.type.startsWith('image/')) return;
 
             const userAvatarImg = document.getElementById('userAvatar');
             const sidebarAvatarImg = document.getElementById('sidebarUserAvatar');
             const oldSrc = userAvatarImg ? userAvatarImg.src : '';
 
-            if (userAvatarImg) userAvatarImg.style.opacity = '0.4';
-            if (sidebarAvatarImg) sidebarAvatarImg.style.opacity = '0.4';
+            // Preview langsung agar gambar baru langsung terlihat sebelum response server.
+            const previewUrl = URL.createObjectURL(file);
+            document.querySelectorAll('#userAvatar, #sidebarUserAvatar').forEach(img => {
+                img.style.display = '';
+                img.style.opacity = '0.55';
+                img.src = previewUrl;
+            });
 
-            const showCyberAlert = (icon, title, text) => {
-                Swal.fire({
-                    icon: icon,
-                    title: title,
-                    text: text,
-                    background: '#0b1329',
-                    color: '#f8fafc',
-                    border: '1px solid rgba(6, 182, 212, 0.3)',
-                    confirmButtonText: 'OKE',
-                    customClass: {
-                        popup: 'rounded-2xl shadow-[0_0_25px_rgba(6,182,212,0.25)] border border-cyan-500/30',
-                        title: 'text-cyan-400 font-extrabold tracking-wide font-["Space_Grotesk"]',
-                        htmlContainer: 'text-slate-300 text-xs font-["Space_Grotesk"]',
-                        confirmButton: 'bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-slate-950 font-bold px-6 py-2.5 rounded-xl uppercase tracking-wider text-xs border-0 shadow-lg shadow-cyan-500/20'
-                    }
-                });
-            };
+            const formData = new FormData();
+            formData.append('avatar', file);
 
             try {
                 const response = await fetch('/api/user/update-avatar', {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    credentials: 'same-origin'
                 });
 
                 const result = await response.json();
+                if (!response.ok || !result.status) throw new Error(result.message || 'Gagal mengunggah avatar.');
 
-                if (result.status) {
-                    const newAvatarUrl = result.avatar;
+                const newAvatarUrl = result.avatar;
+                document.querySelectorAll('#userAvatar, #sidebarUserAvatar').forEach(img => {
+                    img.style.display = '';
+                    img.style.opacity = '1';
+                    img.src = newAvatarUrl || previewUrl;
+                });
 
-                    document.querySelectorAll('#userAvatar, #sidebarUserAvatar').forEach(img => {
-                        img.src = newAvatarUrl;
+                try { sessionStorage.setItem('latestProfileAvatar', newAvatarUrl || previewUrl); } catch (_) {}
+
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Avatar diperbarui',
+                        text: 'Foto profil berhasil disimpan.',
+                        confirmButtonText: 'OKE',
+                        confirmButtonColor: '#4f815f'
                     });
-
-                    showCyberAlert('success', 'AVATAR UPDATED', 'Avatar profil berhasil diperbarui!');
                 } else {
-                    showCyberAlert('error', 'UPDATE FAILED', result.message || 'Gagal mengunggah avatar.');
-                    if (userAvatarImg) userAvatarImg.src = oldSrc;
-                    if (sidebarAvatarImg) sidebarAvatarImg.src = oldSrc;
+                    alert('Foto profil berhasil diperbarui.');
                 }
             } catch (error) {
-                console.error("Error uploading avatar:", error);
-                showCyberAlert('error', 'CONNECTION ERROR', 'Terjadi kesalahan koneksi saat mengunggah gambar.');
-                if (userAvatarImg) userAvatarImg.src = oldSrc;
-                if (sidebarAvatarImg) sidebarAvatarImg.src = oldSrc;
+                console.error('Error uploading avatar:', error);
+                document.querySelectorAll('#userAvatar, #sidebarUserAvatar').forEach(img => {
+                    img.style.opacity = '1';
+                    img.src = oldSrc || img.src;
+                });
+                alert(error.message || 'Terjadi kesalahan saat mengunggah foto.');
             } finally {
                 if (userAvatarImg) userAvatarImg.style.opacity = '1';
                 if (sidebarAvatarImg) sidebarAvatarImg.style.opacity = '1';
                 input.value = '';
+                setTimeout(() => URL.revokeObjectURL(previewUrl), 1500);
             }
         }
 
-        function fetchUserProfile() {
+        
+        function syncProfileMirrorFields() {
+            const name = document.getElementById('userName')?.innerText || '';
+            const email = document.getElementById('userEmail')?.innerText || '';
+            const usernameEl = document.getElementById('userUsername');
+            const emailRowEl = document.getElementById('userEmailRow');
+            if (usernameEl && name) usernameEl.innerText = name;
+            if (emailRowEl && email) emailRowEl.innerText = email;
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            const watcher = new MutationObserver(syncProfileMirrorFields);
+            const n = document.getElementById('userName');
+            const e = document.getElementById('userEmail');
+            if (n) watcher.observe(n, {childList:true, subtree:true, characterData:true});
+            if (e) watcher.observe(e, {childList:true, subtree:true, characterData:true});
+            syncProfileMirrorFields();
+        });
+
+function fetchUserProfile() {
             fetch('/api/user-status')
                 .then(res => res.json())
                 .then(data => {
                     if (data.loggedIn && data.user) {
-                        const latestAvatar = data.user.avatar || 'https://arulz-xd.my.id/files/X1F0Cn.png';
+                        const latestAvatar = data.user.avatar || sessionStorage.getItem('latestProfileAvatar') || 'https://arulz-xd.my.id/files/X1F0Cn.png';
 
                         document.querySelectorAll('#userAvatar, #sidebarUserAvatar').forEach(img => {
                             if (img) img.src = latestAvatar;
@@ -3982,32 +4093,43 @@ app.get('/docs', (req, res) => {
                 });
         }
 
+        function escapeActivityText(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+        }
+
         function fetchUserActivityLogs() {
             const container = document.getElementById('activityLogsContainer');
             if (!container) return;
 
-        fetch('/api/user-activity')
-          .then(res => res.json())
-          .then(resData => {
-              if (resData.status && resData.data && resData.data.length > 0) {
-                  container.innerHTML = resData.data.map(logText => 
-                    '<div class="cyber-pill-capsule text-cyan-300 font-mono text-[10px] py-1.5 px-3 text-center truncate">' +
-                        logText +
-                    '</div>'
-                ).join('');
-            } else {
-                container.innerHTML = 
-                    '<div class="cyber-pill-capsule text-cyan-400/60 font-mono text-[10px] py-2 px-3 text-center">' +
-                        'Belum ada aktivitas request' +
-                    '</div>';
-            }
-        })
-        .catch(err => {
-            container.innerHTML = 
-                '<div class="cyber-pill-capsule text-red-400 font-mono text-[10px] py-2 px-3 text-center">' +
-                    'Gagal memuat aktivitas' +
-                '</div>';
-          });
+            fetch('/api/user-activity', { credentials: 'same-origin' })
+              .then(res => res.json())
+              .then(resData => {
+                  if (resData.status && Array.isArray(resData.data) && resData.data.length > 0) {
+                      container.innerHTML = resData.data.slice(0, 12).map(item => {
+                          // Kompatibel dengan format string lama dan format object baru.
+                          if (typeof item === 'string') {
+                              const match = item.match(/^\[(.*?)\] \[(OK|ERR)\] \[(.*?)\] : (.*)$/);
+                              if (!match) {
+                                  return '<div class="profile-log"><span class="profile-log-method">GET</span><span class="profile-log-endpoint">' + escapeActivityText(item) + '</span><span></span></div>';
+                              }
+                              return '<div class="profile-log"><span class="profile-log-method">' + escapeActivityText(match[3]) + '</span><span class="profile-log-endpoint">' + escapeActivityText(match[4]) + '</span><span class="profile-log-meta"><span class="profile-log-status ' + (match[2] === 'OK' ? 'ok' : 'err') + '">' + escapeActivityText(match[2]) + '</span><span class="profile-log-date">' + escapeActivityText(match[1]) + '</span></span></div>';
+                          }
+
+                          const method = escapeActivityText(item.method || 'GET');
+                          const endpoint = escapeActivityText(item.endpoint || '/');
+                          const status = escapeActivityText(item.status || ((Number(item.statusCode) >= 200 && Number(item.statusCode) < 300) ? 'OK' : 'ERR'));
+                          const statusClass = status === 'OK' ? 'ok' : 'err';
+                          const time = escapeActivityText(item.time || '');
+                          const date = escapeActivityText(item.date || '');
+                          return '<div class="profile-log"><span class="profile-log-method">' + method + '</span><span class="profile-log-endpoint" title="' + endpoint + '">' + endpoint + '</span><span class="profile-log-meta"><span class="profile-log-status ' + statusClass + '">' + status + (item.statusCode ? ' ' + escapeActivityText(item.statusCode) : '') + '</span><span class="profile-log-date">' + time + (time && date ? ' - ' : '') + date + '</span></span></div>';
+                      }).join('');
+                  } else {
+                      container.innerHTML = '<div class="profile-log"><span class="profile-log-method">GET</span><span class="profile-log-endpoint">Belum ada aktivitas request</span><span></span></div>';
+                  }
+              })
+              .catch(() => {
+                  container.innerHTML = '<div class="profile-log"><span class="profile-log-method">!</span><span class="profile-log-endpoint">Gagal memuat aktivitas</span><span></span></div>';
+              });
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -4057,32 +4179,40 @@ app.get('/docs', (req, res) => {
             if (percentageText) percentageText.innerText = Math.floor(currentProgress) + '%';
         }
 
+        let progressInterval = null;
+        function hideLoaderImmediately() {
+            if (loaderOverlay) {
+                loaderOverlay.classList.add('fade-out');
+                loaderOverlay.style.display = 'none';
+            }
+        }
+
         function finishLoader() {
             if (hasFinishedLoading) return;
             hasFinishedLoading = true;
-            clearInterval(progressInterval);
+            if (progressInterval) clearInterval(progressInterval);
             updateProgress(100);
-
+            try { sessionStorage.setItem('xs_pedia_loader_seen', '1'); } catch (_) {}
             setTimeout(() => {
                 if (loaderOverlay) {
                     loaderOverlay.classList.add('fade-out');
-                    setTimeout(() => {
-                        showWelcomePopup();
-                    }, 200);
+                    setTimeout(() => { loaderOverlay.style.display = 'none'; }, 650);
                 }
-            }, 400);
+            }, 180);
         }
 
-        const progressInterval = setInterval(() => {
-            if (currentProgress < 85) {
-                const increment = Math.random() * 12 + 5;
-                updateProgress(currentProgress + increment);
-            }
-        }, 120);
-
-        window.addEventListener('load', finishLoader);
-
-        setTimeout(finishLoader, 1500);
+        let hasSeenLoader = false;
+        try { hasSeenLoader = sessionStorage.getItem('xs_pedia_loader_seen') === '1'; } catch (_) {}
+        if (hasSeenLoader) {
+            hideLoaderImmediately();
+            hasFinishedLoading = true;
+        } else {
+            progressInterval = setInterval(() => {
+                if (currentProgress < 85) updateProgress(currentProgress + Math.random() * 12 + 5);
+            }, 120);
+            window.addEventListener('load', finishLoader, { once:true });
+            setTimeout(finishLoader, 1500);
+        }
 </script>
 
 </body>
