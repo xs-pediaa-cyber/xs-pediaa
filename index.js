@@ -3413,30 +3413,6 @@ app.get('/docs', (req, res) => {
   }
 }
 </style>
-/* Minimal endpoint-name readability patch: preserve the previous UI/layout, only improve title contrast. */
-#apiList h2,
-#apiList h3,
-#apiList h4 {
-  color: #f8fafc !important;
-  -webkit-text-stroke: 0.55px #0f172a !important;
-  text-shadow: 1px 1px 0 rgba(15, 23, 42, 0.9),
-               -1px -1px 0 rgba(15, 23, 42, 0.55),
-               1px -1px 0 rgba(15, 23, 42, 0.55),
-               -1px 1px 0 rgba(15, 23, 42, 0.55) !important;
-  paint-order: stroke fill;
-}
-
-.light-mode #apiList h2,
-.light-mode #apiList h3,
-.light-mode #apiList h4 {
-  color: #f8fafc !important;
-  -webkit-text-stroke: 0.55px #0f172a !important;
-  text-shadow: 1px 1px 0 rgba(15, 23, 42, 0.9),
-               -1px -1px 0 rgba(15, 23, 42, 0.55),
-               1px -1px 0 rgba(15, 23, 42, 0.55),
-               -1px 1px 0 rgba(15, 23, 42, 0.55) !important;
-}
-</style>
 </head>
 <body class="min-h-screen antialiased text-slate-900 relative">
 
