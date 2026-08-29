@@ -1339,6 +1339,13 @@ function sendSweetAlert(res, icon, title, text, redirectUrl) {
     `);
 }
 
+// --- AUTH PAGE ALIASES ---
+// Railway/browser GET requests to these action URLs should not return
+// `Cannot GET ...`; the actual authentication handlers remain POST routes.
+app.get('/auth/login', (req, res) => res.redirect('/login'));
+app.get('/auth/register', (req, res) => res.redirect('/login'));
+app.get('/auth/forgot-password', (req, res) => res.redirect('/login'));
+
 // --- LOGIN ROUTE (MUREN MONGODB) ---
 app.post('/auth/login', (req, res, next) => {
     passport.authenticate('local', async (err, user, info) => { 
@@ -1514,7 +1521,7 @@ app.post('/auth/forgot-password', async (req, res) => {
         const resetUrl = `${protocol}://${host}/reset-password/${resetToken}`;
 
         const mailOptions = {
-            from: '"Support ArulzXD" <supportarulzxd@gmail.com>',
+            from: '"Support XS-Pedia" <supportarulzxd@gmail.com>',
             to: user.email,
             subject: 'Permintaan Reset Kata Sandi',
             html: `
@@ -1523,7 +1530,7 @@ app.post('/auth/forgot-password', async (req, res) => {
         <tr>
             <td style="padding: 32px 32px 24px 32px; text-align: center;">
                 <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 800; tracking-tight: -0.025em;">
-                    Arulz<span style="color: #22d3ee;">XD</span> API
+                    XS-Pedia API
                 </h1>
             </td>
         </tr>
@@ -1535,7 +1542,7 @@ app.post('/auth/forgot-password', async (req, res) => {
         <tr>
             <td style="padding: 0 32px 32px 32px; color: #9ca3af; font-size: 14px; line-height: 24px;">
                 <p style="margin: 0 0 16px 0; color: #ffffff; font-size: 16px; font-weight: 600;">Halo ${user.username},</p>
-                <p style="margin: 0 0 16px 0;">Kami menerima permintaan untuk mengatur ulang kata sandi akun ArulzXD API Anda.</p>
+                <p style="margin: 0 0 16px 0;">Kami menerima permintaan untuk mengatur ulang kata sandi akun XS-Pedia API Anda.</p>
                 <p style="margin: 0 0 24px 0;">Silakan klik tombol di bawah ini untuk membuat kata sandi baru:</p>
                 
                 <table align="center" border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
@@ -1586,7 +1593,7 @@ app.get('/reset-password/:token', async (req, res) => {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Buat Password Baru - ArulzXD REST API</title>
+        <title>Buat Password Baru - XS-Pedia REST API</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
         <style>
@@ -2013,7 +2020,7 @@ const validateApiKey = async (req, res, next) => {
     if (!userKey) {
         return res.status(403).json({
             status: false,
-            creator: "Arulz-XD",
+            creator: "XS-Pedia",
             message: "API Key mana? masukkan parameter ?apikey=MasukkanApiKey"
         });
     }
@@ -2039,7 +2046,7 @@ const validateApiKey = async (req, res, next) => {
     if (!callerUser) {
         return res.status(403).json({
             status: false,
-            creator: "Arulz-XD",
+            creator: "XS-Pedia",
             message: "API Key salah atau tidak terdaftar!"
         });
     }
@@ -2057,7 +2064,7 @@ const validateApiKey = async (req, res, next) => {
         if (routeModule.status === "error" || routeModule.status === "perbaikan") {
             return res.status(503).json({
                 status: false,
-                creator: "Arulz-XD",
+                creator: "XS-Pedia",
                 message: "Fitur ini sedang dalam perbaikan / maintenance!"
             });
         }
@@ -2065,7 +2072,7 @@ const validateApiKey = async (req, res, next) => {
         if (routeModule.type === "premium" && !finalRole.includes("premium") && !finalRole.includes("vip")) {
             return res.status(403).json({
                 status: false,
-                creator: "Arulz-XD",
+                creator: "XS-Pedia",
                 message: "Endpoint ini khusus pengguna Premium!"
             });
         }
@@ -2073,7 +2080,7 @@ const validateApiKey = async (req, res, next) => {
         if (routeModule.type === "vip" && !finalRole.includes("vip")) {
             return res.status(403).json({
                 status: false,
-                creator: "Arulz-XD",
+                creator: "XS-Pedia",
                 message: "Endpoint eksklusif ini khusus pengguna VIP!"
             });
         }
@@ -2099,7 +2106,7 @@ const trackAndEnforceLimit = async (req, res, next) => {
         if (limitUsed >= maxLimit) {
             return res.status(429).json({
                 status: false,
-                creator: "ArulzXD",
+                creator: "XS-Pedia",
                 message: getLimitMessage(keyType, maxLimit)
             });
         }
@@ -2135,7 +2142,7 @@ const apiKeyLimiter = rateLimit({
 
         res.status(429).json({
             status: false,
-            creator: "ArulzXD",
+            creator: "XS-Pedia",
             message: getLimitMessage(keyType, limitCount)
         });
     },
@@ -2207,7 +2214,7 @@ app.post('/api/feedback', async (req, res) => {
                     <tr>
                         <td style="padding: 30px 30px 20px 30px; text-align: center; background: linear-gradient(180deg, rgba(6, 182, 212, 0.12) 0%, transparent 100%); border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
                             <h1 style="margin: 0; font-size: 26px; font-weight: 800; color: #ffffff;">
-                                ARULZ<span style="color: #22d3ee;">XD</span> <span style="font-size: 14px; font-family: monospace; color: #64748b;">v2.0</span>
+                                XS-PEDIA <span style="font-size: 14px; font-family: monospace; color: #64748b;">v2.0</span>
                             </h1>
                         </td>
                     </tr>
@@ -2221,7 +2228,7 @@ app.post('/api/feedback', async (req, res) => {
                                 </div>
                             </div>
                             <p style="font-size: 14px; color: #94a3b8; line-height: 1.6; margin: 0 0 20px 0;">
-                                Halo Admin <strong style="color: #ffffff;">ArulzXD</strong>, sistem menerima laporan baru dari pengguna:
+                                Halo Admin <strong style="color: #ffffff;">XS-Pedia</strong>, sistem menerima laporan baru dari pengguna:
                             </p>
                             <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #020617; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; margin-bottom: 20px;">
                                 <tr>
@@ -2246,7 +2253,7 @@ app.post('/api/feedback', async (req, res) => {
                     </tr>
                     <tr>
                         <td style="padding: 20px 30px; background-color: #020617; border-top: 1px solid rgba(255, 255, 255, 0.05); text-align: center;">
-                            <p style="font-size: 11px; color: #64748b; margin: 0;">© 2026 Api ArulzXD. All rights reserved.</p>
+                            <p style="font-size: 11px; color: #64748b; margin: 0;">© 2026 Api XS-Pedia. All rights reserved.</p>
                         </td>
                     </tr>
                 </table>
@@ -2255,16 +2262,16 @@ app.post('/api/feedback', async (req, res) => {
         };
 
         const userMailOptions = {
-            from: '"Support ArulzXD" <supportarulzxd@gmail.com>', 
+            from: '"Support XS-Pedia" <supportarulzxd@gmail.com>', 
             to: email, 
-            subject: `[Received] Terima Kasih atas Feedback Anda - API-ARULZXD`,
+            subject: `[Received] Terima Kasih atas Feedback Anda - API-XS-PEDIA`,
             html: `
             <div style="background-color: #030712; padding: 40px 15px; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #f3f4f6;">
                 <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #0b0f17; border-radius: 20px; border: 1px solid rgba(6, 182, 212, 0.3); box-shadow: 0 0 35px rgba(6, 182, 212, 0.15); overflow: hidden;">
                     <tr>
                         <td style="padding: 30px 30px 20px 30px; text-align: center; background: linear-gradient(180deg, rgba(6, 182, 212, 0.12) 0%, transparent 100%); border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
                             <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.025em; color: #ffffff;">
-                                ARULZ<span style="color: #22d3ee; text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);">XD</span> <span style="font-size: 14px; font-family: monospace; color: #64748b; font-weight: 400;">API</span>
+                                XS-PEDIA <span style="font-size: 14px; font-family: monospace; color: #64748b; font-weight: 400;">API</span>
                             </h1>
                         </td>
                     </tr>
@@ -2312,7 +2319,7 @@ app.post('/api/feedback', async (req, res) => {
                                 EMAIL AUTOMATED RESPONSE | DO NOT REPLY DIRECTLY TO THIS EMAIL
                             </p>
                             <p style="font-size: 11px; color: #64748b; margin: 0;">
-                                © 2026 <a href="https://arulz-xd.my.id" style="color: #22d3ee; text-decoration: none;">Api ArulzXD</a>. All rights reserved.
+                                © 2026 <a href="https://arulz-xd.my.id" style="color: #22d3ee; text-decoration: none;">Api XS-Pedia</a>. All rights reserved.
                             </p>
                         </td>
                     </tr>
@@ -2351,7 +2358,7 @@ app.get('/database/download', async (req, res) => {
         });
 
         res.setHeader('Content-Type', response.headers['content-type'] || 'image/jpeg');
-        res.setHeader('Content-Disposition', 'attachment; filename="QRIS_Arulz_XD.jpg"');
+        res.setHeader('Content-Disposition', 'attachment; filename="QRIS_XS-Pedia_XD.jpg"');
         res.setHeader('Access-Control-Allow-Origin', '*'); 
 
         response.data.pipe(res);
@@ -2885,7 +2892,7 @@ app.get('/store/:productId', async (req, res) => {
 
             const metaTags = `
     <!-- Open Graph / Meta Tags Dinamis -->
-    <meta property="og:title" content="${product.nama} - ArulzXD Store" />
+    <meta property="og:title" content="${product.nama} - XS-Pedia Store" />
     <meta property="og:description" content="${deskripsiClean}... | Harga: ${hargaFormatted}" />
     <meta property="og:image" content="${product.gambar}" />
     <meta property="og:url" content="https://arulz-xd.my.id/store/${product.Id}" />
@@ -2931,7 +2938,7 @@ app.get('/docs', (req, res) => {
     <meta charset="UTF-8" />
     <meta name="google" content="notranslate" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>API-ARULZXD - REST</title>
+    <title>XS-PEDIA API - REST</title>
     <link rel="icon" href="https://arulz-xd.my.id/files/Q2C70y.png" type="image/png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -3247,7 +3254,7 @@ app.get('/docs', (req, res) => {
     </div>
 
     <div class="absolute bottom-6 text-[10px] font-mono text-slate-500 uppercase tracking-widest">
-        ARULZ-XD API v2.0
+        XS-PEDIA API v2.0
     </div>
 </div>
 
@@ -3267,7 +3274,7 @@ app.get('/docs', (req, res) => {
           
           <div class="text-center mb-4">
             <h1 class="text-xl sm:text-2xl font-extrabold text-white leading-tight tracking-wide">
-              Welcome to<br><span class="text-cyan-400">Arulz-XD API</span>
+              Welcome to<br><span class="text-cyan-400">XS-Pedia API</span>
             </h1>
           </div>
           
@@ -3276,7 +3283,7 @@ app.get('/docs', (req, res) => {
           </div>
           
           <div class="text-center text-slate-300 text-xs sm:text-sm mb-5 px-1 leading-relaxed">
-            <p>Halo! 👋 Selamat datang di Arulz-XD API. Terima kasih sudah berkunjung. API ini dibuat untuk membantu developer dengan berbagai fitur yang terus diperbarui. Silakan gunakan API Key di bawah ini.</p>
+            <p>Halo! 👋 Selamat datang di XS-Pedia API. Terima kasih sudah berkunjung. API ini dibuat untuk membantu developer dengan berbagai fitur yang terus diperbarui. Silakan gunakan API Key di bawah ini.</p>
           </div>
           
           <div class="mb-5 flex justify-center">
@@ -3635,7 +3642,7 @@ app.get('/docs', (req, res) => {
                 </span>
             </div>
             
-            <div id="mainTitle" class="flex justify-center mb-3 min-h-[50px] items-center text-4xl md:text-5xl font-extrabold tracking-tight text-white"><img src="https://readme-typing-svg.demolab.com?font=Poppins&weight=700&size=28&pause=1000&color=00D4FF&center=true&vCenter=true&width=600&lines=Welcome+To+ArulzXD+API;Fast+%F0%9F%9A%80+Reliable+%E2%9A%A1;Free+REST+API+Services;Developer+Friendly+API" alt="Typing SVG" class="mx-auto" /></div>
+            <div id="mainTitle" class="flex justify-center mb-3 min-h-[50px] items-center text-4xl md:text-5xl font-extrabold tracking-tight text-white"><img src="https://readme-typing-svg.demolab.com?font=Poppins&weight=700&size=28&pause=1000&color=00D4FF&center=true&vCenter=true&width=600&lines=Welcome+To+XS-Pedia+API;Fast+%F0%9F%9A%80+Reliable+%E2%9A%A1;Free+REST+API+Services;Developer+Friendly+API" alt="Typing SVG" class="mx-auto" /></div>
             <p id="mainDescription" class="text-sm md:text-base font-normal tracking-wide text-slate-400 max-w-xl mx-auto leading-relaxed">
   Jelajahi, uji, dan jalankan request secara langsung ke endpoint aktif.
 </p>
@@ -3678,7 +3685,7 @@ app.get('/docs', (req, res) => {
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                     </svg>
-                    <span class="underline break-all font-semibold">https://arulz-xd.my.id</span>
+                    <span class="underline break-all font-semibold">https://xs-pedia.id</span>
                 </div>
                 <a href="/feedback" 
                    class="w-full sm:w-auto px-5 py-2 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-slate-950 font-bold text-[11px] uppercase rounded-lg shadow-md transition-all active:scale-95 light-mode:text-white text-center flex items-center justify-center gap-1.5">
@@ -3775,7 +3782,7 @@ app.get('/docs', (req, res) => {
         <div id="apiList" class="space-y-4 max-w-4xl mx-auto"></div>
 
         <footer id="siteFooter" class="mt-16 pt-6 border-t border-white/5 text-center text-[11px] text-slate-500">
-            © Arulz-XD
+            © XS-Pedia
         </footer>
     </div>
 
