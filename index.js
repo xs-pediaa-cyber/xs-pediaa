@@ -3413,6 +3413,258 @@ app.get('/docs', (req, res) => {
   }
 }
 </style>
+
+<!-- FINAL DOCS CONTRAST / BLACK THEME OVERRIDE -->
+<style>
+  /* =========================
+     FORCE ORIGINAL BLACK LOOK
+     ========================= */
+  html, body {
+    background: #020617 !important;
+    color: #0f172a !important;
+  }
+
+  body {
+    background-image: none !important;
+    font-family: Georgia, 'Times New Roman', serif !important;
+  }
+
+  body::before {
+    opacity: .18 !important;
+    background-image: radial-gradient(rgba(148,163,184,.34) 1px, transparent 1px) !important;
+    background-size: 24px 24px !important;
+  }
+
+  #themeBg {
+    background: #020617 !important;
+    background-image: radial-gradient(rgba(148,163,184,.16) 1.5px, transparent 1.5px) !important;
+    background-size: 24px 24px !important;
+  }
+
+  /* Remove the green loader/background treatment. */
+  #cyber-loader-overlay {
+    background: #020617 !important;
+  }
+
+  /* Filters stay clear and readable on the black page. */
+  .filter-btn,
+  .light-mode .filter-btn {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 2px solid #94a3b8 !important;
+    box-shadow: 4px 4px 0 rgba(15,23,42,.16) !important;
+  }
+
+  .filter-btn:hover,
+  .light-mode .filter-btn:hover {
+    background: #f8fafc !important;
+    color: #020617 !important;
+  }
+
+  .filter-btn.active {
+    background: #111827 !important;
+    color: #ffffff !important;
+    border-color: #00f3ff !important;
+    box-shadow: 0 0 16px rgba(0,243,255,.20) !important;
+  }
+
+  /* ==========================================================
+     ENDPOINT NAME: dark fill + black outline/stroke for contrast
+     ========================================================== */
+  #apiList .endpoint-name,
+  #apiList .endpoint-title,
+  #apiList .api-name,
+  #apiList .api-title,
+  #apiList .endpoint-card h1,
+  #apiList .endpoint-card h2,
+  #apiList .endpoint-card h3,
+  #apiList .endpoint-card h4,
+  #apiList .api-card h1,
+  #apiList .api-card h2,
+  #apiList .api-card h3,
+  #apiList .api-card h4 {
+    color: #0f172a !important;
+    -webkit-text-stroke: 1px #000000 !important;
+    text-shadow:
+      1px 1px 0 #000000,
+      -1px -1px 0 #000000,
+      1px -1px 0 #000000,
+      -1px 1px 0 #000000 !important;
+    paint-order: stroke fill !important;
+    font-weight: 900 !important;
+  }
+
+  /* Catch endpoint headings even when script.js uses generic utility classes. */
+  #apiList > div h1,
+  #apiList > div h2,
+  #apiList > div h3,
+  #apiList > div h4 {
+    color: #0f172a !important;
+    -webkit-text-stroke: .85px #000000 !important;
+    text-shadow: 1px 1px 0 #000000, -1px -1px 0 #000000, 1px -1px 0 #000000, -1px 1px 0 #000000 !important;
+    paint-order: stroke fill !important;
+  }
+
+  /* =============================
+     REQUEST / RESPONSE = PURE WHITE
+     ============================= */
+  #apiList .endpoint-details,
+  #apiList .endpoint-detail,
+  #apiList .api-details,
+  #apiList .api-detail,
+  #apiList .endpoint-content,
+  #apiList .endpoint-info,
+  #apiList .request-response,
+  #apiList .request-response-panel,
+  #apiList .request-panel,
+  #apiList .response-panel {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 1.5px solid #cbd5e1 !important;
+    box-shadow: none !important;
+  }
+
+  #apiList pre,
+  #apiList code,
+  #apiList pre code,
+  #apiList input,
+  #apiList textarea,
+  #apiList select,
+  #apiList .code-block,
+  #apiList .code-box,
+  #apiList .request-box,
+  #apiList .response-box,
+  #apiList .curl-box,
+  #apiList .url-box {
+    background: #ffffff !important;
+    color: #111827 !important;
+    border: 2px solid #0f172a !important;
+    border-radius: 14px !important;
+    box-shadow: 0 2px 0 rgba(15,23,42,.10) !important;
+    text-shadow: none !important;
+  }
+
+  #apiList pre,
+  #apiList .code-block,
+  #apiList .code-box,
+  #apiList .request-box,
+  #apiList .response-box,
+  #apiList .curl-box,
+  #apiList .url-box {
+    padding: 14px !important;
+  }
+
+  #apiList input,
+  #apiList textarea,
+  #apiList select {
+    color: #0f172a !important;
+    caret-color: #0f172a !important;
+  }
+
+  #apiList input::placeholder,
+  #apiList textarea::placeholder {
+    color: #64748b !important;
+    opacity: 1 !important;
+  }
+
+  #apiList input:focus,
+  #apiList textarea:focus,
+  #apiList select:focus {
+    outline: 2px solid #00a8b8 !important;
+    outline-offset: 1px !important;
+    border-color: #0f172a !important;
+    box-shadow: none !important;
+  }
+
+  /* URL / cURL text gets strong dark contrast. */
+  #apiList .url-box,
+  #apiList .url-box a,
+  #apiList .curl-box,
+  #apiList .curl-box * {
+    color: #0f172a !important;
+    font-weight: 700 !important;
+  }
+
+  /* Labels/headings in the expanded feature block. */
+  #apiList label,
+  #apiList .parameter-label,
+  #apiList .param-label,
+  #apiList [class*="text-slate-400"],
+  #apiList [class*="text-gray-400"],
+  #apiList [class*="text-slate-500"],
+  #apiList [class*="text-gray-500"] {
+    color: #334155 !important;
+    font-weight: 800 !important;
+  }
+
+  #apiList [class*="text-white"],
+  #apiList [class*="text-slate-200"],
+  #apiList [class*="text-gray-200"] {
+    color: #0f172a !important;
+  }
+
+  /* Keep the cyan accents but make them stable instead of translucent green. */
+  #apiList button {
+    border-width: 1.5px !important;
+  }
+
+  /* Re-assert in light-mode so old green overrides cannot bleed through. */
+  .light-mode,
+  .light-mode body,
+  .light-mode #themeBg {
+    background: #020617 !important;
+    color: #f8fafc !important;
+  }
+
+  .light-mode #apiList .endpoint-details,
+  .light-mode #apiList .endpoint-detail,
+  .light-mode #apiList .api-details,
+  .light-mode #apiList .api-detail,
+  .light-mode #apiList .endpoint-content,
+  .light-mode #apiList .endpoint-info,
+  .light-mode #apiList .request-response,
+  .light-mode #apiList .request-response-panel,
+  .light-mode #apiList .request-panel,
+  .light-mode #apiList .response-panel {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+  }
+
+  .light-mode #apiList pre,
+  .light-mode #apiList code,
+  .light-mode #apiList pre code,
+  .light-mode #apiList input,
+  .light-mode #apiList textarea,
+  .light-mode #apiList select,
+  .light-mode #apiList .code-block,
+  .light-mode #apiList .code-box,
+  .light-mode #apiList .request-box,
+  .light-mode #apiList .response-box,
+  .light-mode #apiList .curl-box,
+  .light-mode #apiList .url-box {
+    background: #ffffff !important;
+    color: #111827 !important;
+    border-color: #0f172a !important;
+  }
+
+  @media (max-width: 640px) {
+    #apiList pre,
+    #apiList code,
+    #apiList .code-block,
+    #apiList .code-box,
+    #apiList .request-box,
+    #apiList .response-box,
+    #apiList .curl-box,
+    #apiList .url-box {
+      font-size: 12px !important;
+      line-height: 1.65 !important;
+      white-space: pre-wrap !important;
+      overflow-wrap: anywhere !important;
+    }
+  }
+</style>
+
 </head>
 <body class="min-h-screen antialiased text-slate-900 relative">
 
