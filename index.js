@@ -35,7 +35,7 @@ app.use(express.json({
 app.use(cookieParser());
 app.set('trust proxy', 1);
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://arulz-xd-owner:Haqqi0213@cluster0.fgxhxqm.mongodb.net/?appName=Cluster0'; 
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://db_ryuuxiao:db_ryuuxiao@cluster0.sj28lxh.mongodb.net/?appName=Cluster0'; 
 
 mongoose.connect(MONGODB_URI)
     .then(() => console.log('📦 Berhasil terhubung ke MongoDB!'))
