@@ -3481,13 +3481,43 @@ body.light-mode #apiList [class*="endpoint-title"] {
     text-shadow:none !important;
   }
 
+  /* Make endpoint READY/FREE badges vivid and luminous like PREMIUM/VIP. */
+  #apiList .endpoint-ready-badge,
+  #apiList .ready-badge,
+  #apiList .badge-ready,
+  #apiList [data-status="ready"],
+  #apiList [data-status="READY"]{
+    background:linear-gradient(135deg,#d9ffe9,#c8f8df) !important;
+    color:#16a34a !important;
+    border:1.5px solid #86efac !important;
+    box-shadow:0 0 0 1px rgba(134,239,172,.15),0 0 14px rgba(34,197,94,.24) !important;
+    font-weight:900 !important;
+    text-shadow:0 0 7px rgba(34,197,94,.24) !important;
+    opacity:1 !important;
+  }
+
+  #apiList .endpoint-free-badge,
+  #apiList .free-badge,
+  #apiList .badge-free,
+  #apiList [data-type="free"],
+  #apiList [data-plan="free"]{
+    background:linear-gradient(135deg,#d9f5ff,#d7ecff) !important;
+    color:#0ea5e9 !important;
+    border:1.5px solid #7dd3fc !important;
+    box-shadow:0 0 0 1px rgba(125,211,252,.16),0 0 14px rgba(14,165,233,.24) !important;
+    font-weight:900 !important;
+    text-shadow:0 0 7px rgba(14,165,233,.22) !important;
+    opacity:1 !important;
+  }
+
   /* Free badge: bright/clear like the Premium & VIP badges. */
   #userLimitBadge{
-    background:#e0f7fb !important;
-    color:#0e7490 !important;
-    border:1px solid #a5e5f0 !important;
-    box-shadow:none !important;
-    font-weight:800 !important;
+    background:linear-gradient(135deg,#d9f5ff,#d7ecff) !important;
+    color:#0ea5e9 !important;
+    border:1.5px solid #7dd3fc !important;
+    box-shadow:0 0 0 1px rgba(125,211,252,.16),0 0 14px rgba(14,165,233,.24) !important;
+    font-weight:900 !important;
+    text-shadow:0 0 7px rgba(14,165,233,.22) !important;
   }
 
   /* Keep role/profile badges bright on the white theme. */
@@ -4081,6 +4111,25 @@ body.light-mode #apiList [class*="endpoint-title"] {
         }
 
         loadEndpointNames();
+
+        // Ensure READY and FREE badges in dynamically-rendered endpoint cards stay vivid.
+        (() => {
+            const applyStatusBadgeGlow = () => {
+                const nodes = apiList.querySelectorAll('span,div,p,strong,a,b');
+                nodes.forEach((el) => {
+                    const text = (el.textContent || '').trim().toUpperCase();
+                    if (text === 'READY') {
+                        el.classList.add('endpoint-ready-badge');
+                    } else if (text === '✓ FREE' || text === 'FREE') {
+                        el.classList.add('endpoint-free-badge');
+                    }
+                });
+            };
+            applyStatusBadgeGlow();
+            if (window.MutationObserver) {
+                new MutationObserver(applyStatusBadgeGlow).observe(apiList, { childList: true, subtree: true });
+            }
+        })();
     })();
 </script>
 
