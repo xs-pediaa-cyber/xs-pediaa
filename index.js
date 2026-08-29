@@ -3226,6 +3226,192 @@ app.get('/docs', (req, res) => {
   font-weight: 900;
   box-shadow: 0 0 14px rgba(0, 243, 255, 0.8);
 }
+
+/* ============================================================
+   DOCS ENDPOINT CONTRAST PATCH
+   Keeps endpoint detail/request/response panels readable in
+   light mode while matching the dark cyber endpoint styling.
+   ============================================================ */
+#apiList {
+  --docs-panel: #0b1329;
+  --docs-panel-2: #111827;
+  --docs-border: rgba(0, 243, 255, 0.36);
+  --docs-border-soft: rgba(148, 163, 184, 0.28);
+  --docs-text: #f8fafc;
+  --docs-muted: #cbd5e1;
+  --docs-code: #9ef5c3;
+}
+
+/* The expanded endpoint feature/detail area */
+#apiList .endpoint-details,
+#apiList .endpoint-detail,
+#apiList .api-details,
+#apiList .api-detail,
+#apiList .endpoint-content,
+#apiList .endpoint-info,
+#apiList .request-response,
+#apiList .request-response-panel,
+#apiList .request-panel,
+#apiList .response-panel {
+  background: var(--docs-panel) !important;
+  color: var(--docs-text) !important;
+  border-color: var(--docs-border) !important;
+  box-shadow: inset 0 0 0 1px rgba(0, 243, 255, 0.07), 0 12px 30px rgba(2, 8, 23, 0.22) !important;
+}
+
+/* Catch common Tailwind dark panels used by the endpoint renderer. */
+#apiList .bg-slate-950,
+#apiList .bg-slate-900,
+#apiList .bg-slate-800,
+#apiList .bg-gray-950,
+#apiList .bg-gray-900,
+#apiList .bg-gray-800,
+#apiList .bg-zinc-950,
+#apiList .bg-zinc-900,
+#apiList [class*="bg-slate-900/"],
+#apiList [class*="bg-slate-800/"] {
+  background-color: var(--docs-panel) !important;
+  border-color: var(--docs-border-soft) !important;
+}
+
+/* Make every code/request/response surface solid and high-contrast. */
+#apiList pre,
+#apiList code,
+#apiList pre code,
+#apiList .code-block,
+#apiList .code-box,
+#apiList .request-box,
+#apiList .response-box,
+#apiList .curl-box,
+#apiList .url-box {
+  background: #08101f !important;
+  color: var(--docs-code) !important;
+  border: 1px solid var(--docs-border-soft) !important;
+  border-radius: 14px !important;
+  text-shadow: 0 0 8px rgba(158, 245, 195, 0.10);
+}
+
+#apiList pre,
+#apiList .code-block,
+#apiList .code-box,
+#apiList .request-box,
+#apiList .response-box,
+#apiList .curl-box {
+  box-shadow: inset 0 0 0 1px rgba(0, 243, 255, 0.08), 0 8px 20px rgba(2, 8, 23, 0.18) !important;
+}
+
+/* Text that becomes nearly white-on-white when light mode is active. */
+#apiList h1,
+#apiList h2,
+#apiList h3,
+#apiList h4,
+#apiList p,
+#apiList span,
+#apiList div,
+#apiList label,
+#apiList strong,
+#apiList small {
+  text-shadow: none;
+}
+
+.light-mode #apiList .endpoint-details,
+.light-mode #apiList .endpoint-detail,
+.light-mode #apiList .api-details,
+.light-mode #apiList .api-detail,
+.light-mode #apiList .endpoint-content,
+.light-mode #apiList .endpoint-info,
+.light-mode #apiList .request-response,
+.light-mode #apiList .request-response-panel,
+.light-mode #apiList .request-panel,
+.light-mode #apiList .response-panel {
+  background: #0b1329 !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(0, 243, 255, 0.38) !important;
+}
+
+.light-mode #apiList pre,
+.light-mode #apiList code,
+.light-mode #apiList pre code,
+.light-mode #apiList input,
+.light-mode #apiList textarea,
+.light-mode #apiList select,
+.light-mode #apiList .code-block,
+.light-mode #apiList .code-box,
+.light-mode #apiList .request-box,
+.light-mode #apiList .response-box,
+.light-mode #apiList .curl-box,
+.light-mode #apiList .url-box {
+  background: #08101f !important;
+  color: #d1fae5 !important;
+  border-color: rgba(0, 243, 255, 0.35) !important;
+}
+
+#apiList input::placeholder,
+#apiList textarea::placeholder {
+  color: #64748b !important;
+  opacity: 1 !important;
+}
+
+#apiList input:focus,
+#apiList textarea:focus,
+#apiList select:focus {
+  outline: none !important;
+  border-color: #00f3ff !important;
+  box-shadow: 0 0 0 2px rgba(0, 243, 255, 0.14), 0 0 14px rgba(0, 243, 255, 0.10) !important;
+}
+
+/* Strong, readable field labels inside the detail area. */
+#apiList label,
+#apiList .parameter-label,
+#apiList .param-label,
+#apiList [class*="text-slate-400"],
+#apiList [class*="text-gray-400"] {
+  color: #cbd5e1 !important;
+}
+
+#apiList [class*="text-white"],
+#apiList [class*="text-slate-200"],
+#apiList [class*="text-gray-200"] {
+  color: #f8fafc !important;
+}
+
+/* Request/response headings and status accents. */
+#apiList [class*="uppercase"],
+#apiList .request-title,
+#apiList .response-title,
+#apiList .code-title {
+  letter-spacing: 0.08em;
+}
+
+#apiList button {
+  border-width: 1px !important;
+}
+
+/* Keep the API detail blocks visually separated from endpoint cards. */
+#apiList .endpoint-details,
+#apiList .endpoint-detail,
+#apiList .api-details,
+#apiList .api-detail,
+#apiList .request-response-panel {
+  border-radius: 18px !important;
+  overflow: hidden;
+}
+
+/* Mobile readability */
+@media (max-width: 640px) {
+  #apiList pre,
+  #apiList code,
+  #apiList .code-block,
+  #apiList .code-box,
+  #apiList .request-box,
+  #apiList .response-box,
+  #apiList .curl-box {
+    font-size: 12px !important;
+    line-height: 1.65 !important;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+}
 </style>
 </head>
 <body class="min-h-screen antialiased text-slate-900 relative">
