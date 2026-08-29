@@ -1321,7 +1321,249 @@ function sendSweetAlert(res, icon, title, text, redirectUrl) {
                     padding: 10px 24px !important;
                 }
             </style>
-        </head>
+        
+<!-- FINAL STABLE UI PATCH v5 -->
+<style id="xs-final-ui-patch-v5">
+  /* Keep the whole docs surface white and isolated from legacy dark-mode rules. */
+  html, body, body.light-mode, #themeBg { background:#fff !important; }
+
+  /* Never let legacy role selectors paint large containers. */
+  #apiList [data-type="vip"]:not(.endpoint-vip-badge),
+  #apiList [data-plan="vip"]:not(.endpoint-vip-badge),
+  #apiList [data-type="premium"]:not(.endpoint-premium-badge),
+  #apiList [data-plan="premium"]:not(.endpoint-premium-badge) {
+    background:transparent !important;
+    background-image:none !important;
+    color:inherit !important;
+    border-color:transparent !important;
+    box-shadow:none !important;
+    filter:none !important;
+    -webkit-filter:none !important;
+    opacity:1 !important;
+  }
+
+  /* Exact role badges only: compact, bright and never allowed to cover siblings. */
+  #apiList .endpoint-vip-badge,
+  #apiList .endpoint-premium-badge {
+    position:relative !important;
+    display:inline-flex !important;
+    width:max-content !important;
+    max-width:max-content !important;
+    min-width:0 !important;
+    flex:0 0 auto !important;
+    align-items:center !important;
+    justify-content:center !important;
+    vertical-align:middle !important;
+    z-index:2 !important;
+    overflow:visible !important;
+    opacity:1 !important;
+    filter:none !important;
+    -webkit-filter:none !important;
+    box-sizing:border-box !important;
+  }
+  #apiList .endpoint-vip-badge {
+    background:#efe0ff !important;
+    color:#7c3aed !important;
+    border:2px solid #c084fc !important;
+    box-shadow:0 0 12px rgba(168,85,247,.22) !important;
+  }
+  #apiList .endpoint-premium-badge {
+    background:#fff0c7 !important;
+    color:#d97706 !important;
+    border:2px solid #f6c766 !important;
+    box-shadow:0 0 12px rgba(245,158,11,.20) !important;
+  }
+  #apiList .endpoint-vip-badge *,
+  #apiList .endpoint-premium-badge * {
+    color:inherit !important;
+    opacity:1 !important;
+    filter:none !important;
+    -webkit-filter:none !important;
+    text-shadow:none !important;
+    background:transparent !important;
+    border-color:transparent !important;
+  }
+  #apiList .endpoint-vip-badge svg,
+  #apiList .endpoint-premium-badge svg {
+    display:inline-block !important;
+    visibility:visible !important;
+    opacity:1 !important;
+    color:currentColor !important;
+    stroke:currentColor !important;
+    fill:currentColor !important;
+  }
+
+  /* READY/FREE remain bright and compact. */
+  #apiList .endpoint-ready-badge,
+  #apiList .endpoint-free-badge {
+    position:relative !important;
+    display:inline-flex !important;
+    width:max-content !important;
+    max-width:max-content !important;
+    min-width:0 !important;
+    flex:0 0 auto !important;
+    align-items:center !important;
+    justify-content:center !important;
+    vertical-align:middle !important;
+    opacity:1 !important;
+    filter:none !important;
+    -webkit-filter:none !important;
+    z-index:2 !important;
+    box-sizing:border-box !important;
+  }
+  #apiList .endpoint-ready-badge {
+    background:#d9ffe8 !important;
+    color:#16a34a !important;
+    border:2px solid #86efac !important;
+    box-shadow:0 0 12px rgba(34,197,94,.22) !important;
+  }
+  #apiList .endpoint-free-badge {
+    background:#dff5ff !important;
+    color:#0284c7 !important;
+    border:2px solid #7dd3fc !important;
+    box-shadow:0 0 12px rgba(14,165,233,.22) !important;
+  }
+  #apiList .endpoint-ready-badge *,
+  #apiList .endpoint-free-badge * {
+    color:inherit !important;
+    opacity:1 !important;
+    background:transparent !important;
+    filter:none !important;
+    -webkit-filter:none !important;
+  }
+
+  /* Endpoint detail/request/response panels: white, black text, no legacy dark blocks. */
+  #apiList .endpoint-details,
+  #apiList .endpoint-detail,
+  #apiList .api-details,
+  #apiList .api-detail,
+  #apiList .endpoint-content,
+  #apiList .endpoint-info,
+  #apiList .request-response,
+  #apiList .request-response-panel,
+  #apiList .request-panel,
+  #apiList .response-panel {
+    background:#fff !important;
+    background-image:none !important;
+    color:#0f172a !important;
+    border-color:#d9e2e8 !important;
+    box-shadow:none !important;
+  }
+
+  /* Every code/request/response surface is a white box with dark readable text. */
+  #apiList pre,
+  #apiList code,
+  #apiList pre code,
+  #apiList input,
+  #apiList textarea,
+  #apiList select,
+  #apiList .code-block,
+  #apiList .code-box,
+  #apiList .request-box,
+  #apiList .response-box,
+  #apiList .curl-box,
+  #apiList .url-box,
+  #apiList .xs-request-url-box,
+  #apiList .xs-response-white {
+    background:#fff !important;
+    background-image:none !important;
+    color:#111827 !important;
+    border-color:#d5dee6 !important;
+    text-shadow:none !important;
+    box-shadow:none !important;
+    opacity:1 !important;
+  }
+  #apiList pre *,
+  #apiList code *,
+  #apiList .xs-request-url-box *,
+  #apiList .xs-response-white * {
+    color:#111827 !important;
+    background:transparent !important;
+    text-shadow:none !important;
+    opacity:1 !important;
+  }
+  #apiList input::placeholder,
+  #apiList textarea::placeholder { color:#64748b !important; opacity:1 !important; }
+
+  /* Hide the description panel only. */
+  #apiList .xs-hide-endpoint-description { display:none !important; }
+
+  /* Execute button is always a solid visible button. */
+  #apiList .xs-execute-button {
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    background:#06b6d4 !important;
+    background-image:none !important;
+    color:#fff !important;
+    border:2px solid #0891b2 !important;
+    box-shadow:0 5px 14px rgba(6,182,212,.24) !important;
+    opacity:1 !important;
+    visibility:visible !important;
+    filter:none !important;
+    -webkit-filter:none !important;
+    text-shadow:none !important;
+    cursor:pointer !important;
+  }
+  #apiList .xs-execute-button:hover { background:#0891b2 !important; }
+  #apiList .xs-execute-button:disabled {
+    background:#67cfe0 !important;
+    color:#fff !important;
+    opacity:.75 !important;
+  }
+
+  /* Category cards: keep the icon in its own left slot, never over endpoint content. */
+  #apiList .xs-category-card {
+    position:relative !important;
+    min-height:106px !important;
+    padding-left:128px !important;
+    overflow:visible !important;
+    box-sizing:border-box !important;
+  }
+  #apiList .xs-category-title {
+    margin-left:0 !important;
+    position:relative !important;
+    z-index:2 !important;
+  }
+  #apiList .xs-category-icon {
+    position:absolute !important;
+    left:28px !important;
+    top:50% !important;
+    transform:translateY(-50%) !important;
+    width:72px !important;
+    height:72px !important;
+    border-radius:20px !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    background:#a8a9ad !important;
+    color:#86f0b0 !important;
+    border:2px solid #d7d9dc !important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.42),0 5px 14px rgba(15,23,42,.10) !important;
+    z-index:10 !important;
+    pointer-events:none !important;
+    visibility:visible !important;
+    opacity:1 !important;
+  }
+  #apiList .xs-category-icon svg {
+    display:block !important;
+    width:40px !important;
+    height:40px !important;
+    min-width:40px !important;
+    min-height:40px !important;
+    color:#86f0b0 !important;
+    stroke:#86f0b0 !important;
+    fill:none !important;
+    visibility:visible !important;
+    opacity:1 !important;
+  }
+  @media (max-width:640px) {
+    #apiList .xs-category-card { min-height:104px !important; padding-left:126px !important; }
+    #apiList .xs-category-icon { left:28px !important; width:70px !important; height:70px !important; }
+  }
+</style>
+
+</head>
         <body>
             <script>
                 Swal.fire({
@@ -4362,6 +4604,108 @@ body.light-mode #apiList [class*="endpoint-title"] {
             }
         })();
     })();
+</script>
+
+
+<script>
+/* Final UI behavior patch v5: precise element targeting, no broad container styling. */
+(() => {
+  const apiList = document.getElementById('apiList');
+  if (!apiList) return;
+
+  const normalize = (v) => String(v || '').replace(/\s+/g, ' ').trim().toUpperCase();
+  const categoryIcons = {
+    AI: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="7" width="16" height="12" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11h.01M16 11h.01M8 15h8M12 7V4M9 4h6M2 12v4M22 12v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    AMPRO: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 12h16M12 4c2.2 2.2 3.3 4.9 3.3 8s-1.1 5.8-3.3 8c-2.2-2.2-3.3-4.9-3.3-8S9.8 6.2 12 4Z" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
+    KOMIKU: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H20v17H7.5A2.5 2.5 0 0 0 5 21.5v-17Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M5 5h12M9 8h7M9 12h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    RANDOM: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h5v5M4 6h4c4 0 4 12 8 12h5M16 21h5v-5M4 18h4c1.7 0 2.8-2 3.5-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    TOOLS: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a5 5 0 0 0-6.4 6.4L3 18l3 3 5.3-5.3a5 5 0 0 0 6.4-6.4l-3 3-2-2 3-3Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    'XS-PEDIA': '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v14H5z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 9h8M8 12h6M8 15h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    OTHER: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="4" width="6" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="4" y="14" width="6" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="6" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="2"/></svg>'
+  };
+
+  const findCategoryCard = (name) => {
+    const nodes = Array.from(apiList.querySelectorAll('*'));
+    for (const node of nodes) {
+      if (normalize(node.textContent) !== name) continue;
+      let el = node;
+      for (let depth = 0; depth < 6 && el && el !== apiList; depth++, el = el.parentElement) {
+        const txt = normalize(el.textContent);
+        if (txt.startsWith(name + ' ') && /\b\d+\s+ENDPOINTS?\b/i.test(txt) && txt.length < 180) return el;
+      }
+    }
+    return null;
+  };
+
+  const addCategoryIconsStable = () => {
+    Object.keys(categoryIcons).forEach((name) => {
+      const card = findCategoryCard(name);
+      if (!card) return;
+      card.classList.add('xs-category-card');
+      const titleNode = Array.from(card.querySelectorAll('*')).find(el => normalize(el.textContent) === name);
+      if (titleNode) titleNode.classList.add('xs-category-title');
+      if (!card.querySelector(':scope > .xs-category-icon')) {
+        const icon = document.createElement('div');
+        icon.className = 'xs-category-icon';
+        icon.setAttribute('aria-hidden', 'true');
+        icon.innerHTML = categoryIcons[name];
+        card.prepend(icon);
+      }
+    });
+  };
+
+  const markExact = () => {
+    const all = Array.from(apiList.querySelectorAll('span,div,p,strong,a,b,button,h1,h2,h3,h4,h5,h6,label'));
+    all.forEach((el) => {
+      const text = normalize(el.textContent);
+      if (text === 'READY') el.classList.add('endpoint-ready-badge');
+      if (text === 'FREE' || text === '✓ FREE') el.classList.add('endpoint-free-badge');
+      if (text === 'VIP') el.classList.add('endpoint-vip-badge');
+      if (text === 'PREMIUM') el.classList.add('endpoint-premium-badge');
+    });
+
+    /* Execute buttons: identify the smallest button containing only Execute text. */
+    apiList.querySelectorAll('button').forEach((btn) => {
+      const t = normalize(btn.textContent);
+      if (t === 'EXECUTE' || t === 'EXECUTE REQUEST' || t === 'SEND REQUEST') {
+        btn.classList.add('xs-execute-button');
+      }
+    });
+
+    /* Ensure URL box + response code boxes are tagged without styling their whole section. */
+    const headings = Array.from(apiList.querySelectorAll('*')).filter(el => normalize(el.textContent) === 'ENDPOINT / REQUEST URL');
+    headings.forEach((heading) => {
+      let parent = heading.parentElement;
+      for (let i = 0; i < 5 && parent; i++, parent = parent.parentElement) {
+        const candidates = Array.from(parent.querySelectorAll('pre,code,input,textarea,div'));
+        const hit = candidates.find(el => /https?:\/\//i.test(el.textContent || el.value || ''));
+        if (hit) {
+          hit.classList.add('xs-request-url-box');
+          if (hit.parentElement) hit.parentElement.classList.add('xs-request-url-box');
+          break;
+        }
+      }
+    });
+
+    apiList.querySelectorAll('pre,code').forEach((el) => {
+      const t = normalize(el.textContent);
+      if (t.includes('RESPONSE') || t.includes('STATUS') || t.includes('SUCCESS') || t.includes('ERROR')) {
+        el.classList.add('xs-response-white');
+      }
+    });
+  };
+
+  const runAll = () => { addCategoryIconsStable(); markExact(); };
+  runAll();
+  if (window.MutationObserver) {
+    let queued = false;
+    new MutationObserver(() => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => { queued = false; runAll(); });
+    }).observe(apiList, { childList:true, subtree:true });
+  }
+})();
 </script>
 
 <script>
