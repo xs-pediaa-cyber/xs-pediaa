@@ -3520,6 +3520,46 @@ body.light-mode #apiList [class*="endpoint-title"] {
     text-shadow:0 0 7px rgba(14,165,233,.22) !important;
   }
 
+  /* Keep endpoint PREMIUM/VIP badges fully opaque and vivid. */
+  #apiList .endpoint-premium-badge,
+  #apiList .premium-badge,
+  #apiList .badge-premium,
+  #apiList [data-type="premium"],
+  #apiList [data-plan="premium"],
+  #apiList .endpoint-vip-badge,
+  #apiList .vip-badge,
+  #apiList .badge-vip,
+  #apiList [data-type="vip"],
+  #apiList [data-plan="vip"]{
+    opacity:1 !important;
+    filter:none !important;
+    -webkit-filter:none !important;
+    font-weight:900 !important;
+    text-shadow:none !important;
+  }
+
+  #apiList .endpoint-premium-badge,
+  #apiList .premium-badge,
+  #apiList .badge-premium,
+  #apiList [data-type="premium"],
+  #apiList [data-plan="premium"]{
+    background:linear-gradient(135deg,#fff7d6,#ffe8ad) !important;
+    color:#d98a00 !important;
+    border:1.5px solid #f6c766 !important;
+    box-shadow:0 0 0 1px rgba(246,199,102,.18),0 0 16px rgba(245,158,11,.24) !important;
+  }
+
+  #apiList .endpoint-vip-badge,
+  #apiList .vip-badge,
+  #apiList .badge-vip,
+  #apiList [data-type="vip"],
+  #apiList [data-plan="vip"]{
+    background:linear-gradient(135deg,#f4e7ff,#ead5ff) !important;
+    color:#8b5cf6 !important;
+    border:1.5px solid #c084fc !important;
+    box-shadow:0 0 0 1px rgba(192,132,252,.18),0 0 16px rgba(168,85,247,.24) !important;
+  }
+
   /* Keep role/profile badges bright on the white theme. */
   #userPlanTextBadge{
     background:linear-gradient(135deg,#e7f8ff,#f3fbff) !important;
@@ -3567,6 +3607,37 @@ body.light-mode #apiList [class*="endpoint-title"] {
     #apiList .xs-category-title{
       margin-left:128px !important;
     }
+  }
+</style>
+
+<!-- Final stable endpoint readability overrides -->
+<style>
+  /* Remove the old dark description header/body completely. */
+  #apiList .xs-hide-endpoint-description{display:none !important;}
+
+  /* Request URL surface is white; readable black text. */
+  #apiList .xs-request-url-box,
+  #apiList .xs-request-url-box *{
+    background:#ffffff !important;
+    color:#0f172a !important;
+    border-color:#d7e0e7 !important;
+    text-shadow:none !important;
+  }
+
+  /* Response/code text is black on white. */
+  #apiList .xs-response-white,
+  #apiList .xs-response-white *{
+    color:#0f172a !important;
+    text-shadow:none !important;
+  }
+
+  /* Exact endpoint role badges: never inherit faded/disabled opacity. */
+  #apiList .endpoint-premium-badge,
+  #apiList .endpoint-vip-badge{
+    opacity:1 !important;
+    filter:none !important;
+    -webkit-filter:none !important;
+    text-shadow:none !important;
   }
 </style>
 
@@ -4209,22 +4280,85 @@ body.light-mode #apiList [class*="endpoint-title"] {
             }
         })();
 
-        // Ensure READY and FREE badges in dynamically-rendered endpoint cards stay vivid.
+        // Keep READY/FREE/PREMIUM/VIP badges crisp and remove the old description block.
         (() => {
-            const applyStatusBadgeGlow = () => {
-                const nodes = apiList.querySelectorAll('span,div,p,strong,a,b');
+            const normalize = (value) => (value || '').replace(/\s+/g, ' ').trim().toUpperCase();
+
+            const applyStableEndpointUI = () => {
+                const nodes = apiList.querySelectorAll('span,div,p,strong,a,b,button,h1,h2,h3,h4,h5,h6,label');
                 nodes.forEach((el) => {
-                    const text = (el.textContent || '').trim().toUpperCase();
+                    const text = normalize(el.textContent);
                     if (text === 'READY') {
                         el.classList.add('endpoint-ready-badge');
                     } else if (text === '✓ FREE' || text === 'FREE') {
                         el.classList.add('endpoint-free-badge');
+                    } else if (text === 'VIP' || text.includes(' VIP')) {
+                        el.classList.add('endpoint-vip-badge');
+                    } else if (text === 'PREMIUM' || text.includes(' PREMIUM')) {
+                        el.classList.add('endpoint-premium-badge');
+                    }
+                });
+
+                // Hide only the descriptive header section, not the actual request/response blocks.
+                const all = Array.from(apiList.querySelectorAll('div,section,article,header'));
+                all.forEach((el) => {
+                    if (el.dataset.xsDescriptionHidden === '1') return;
+                    const own = normalize(el.textContent);
+                    if (!own.includes('DESKRIPSI ENDPOINT')) return;
+                    const headerMatch = Array.from(el.querySelectorAll('*')).some(child => {
+                        const t = normalize(child.textContent);
+                        return t === 'DESKRIPSI ENDPOINT';
+                    });
+                    if (!headerMatch) return;
+                    // Choose the nearest compact container around that exact heading.
+                    let target = el;
+                    const heading = Array.from(el.querySelectorAll('*')).find(child => normalize(child.textContent) === 'DESKRIPSI ENDPOINT');
+                    if (heading) {
+                        let parent = heading.parentElement;
+                        for (let i = 0; i < 3 && parent; i++, parent = parent.parentElement) {
+                            const txt = normalize(parent.textContent);
+                            if (txt.includes('DESKRIPSI ENDPOINT') && !txt.includes('ENDPOINT / REQUEST URL')) target = parent;
+                        }
+                    }
+                    target.classList.add('xs-hide-endpoint-description');
+                    target.dataset.xsDescriptionHidden = '1';
+                });
+
+                // Mark request URL containers for the final white-theme override.
+                const urlHeadings = Array.from(apiList.querySelectorAll('*')).filter(el => {
+                    const t = normalize(el.textContent);
+                    return t === 'ENDPOINT / REQUEST URL';
+                });
+                urlHeadings.forEach((heading) => {
+                    let box = heading.parentElement;
+                    for (let i = 0; i < 5 && box; i++, box = box.parentElement) {
+                        const text = normalize(box.textContent);
+                        if (text.includes('ENDPOINT / REQUEST URL')) {
+                            const candidates = box.querySelectorAll('pre,code,div');
+                            let chosen = null;
+                            candidates.forEach(c => {
+                                if (chosen) return;
+                                const ct = normalize(c.textContent);
+                                if (ct.includes('HTTPS://') || ct.includes('HTTP://')) chosen = c;
+                            });
+                            if (chosen) chosen.classList.add('xs-request-url-box');
+                            break;
+                        }
+                    }
+                });
+
+                // Mark response/code surfaces so their text stays black on white.
+                apiList.querySelectorAll('pre,code').forEach((el) => {
+                    const t = normalize(el.textContent);
+                    if (t.includes('RESPONSE') || t.includes('STATUS') || t.includes('SUCCESS')) {
+                        el.classList.add('xs-response-white');
                     }
                 });
             };
-            applyStatusBadgeGlow();
+
+            applyStableEndpointUI();
             if (window.MutationObserver) {
-                new MutationObserver(applyStatusBadgeGlow).observe(apiList, { childList: true, subtree: true });
+                new MutationObserver(applyStableEndpointUI).observe(apiList, { childList: true, subtree: true });
             }
         })();
     })();
