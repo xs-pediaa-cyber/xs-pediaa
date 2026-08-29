@@ -2939,7 +2939,7 @@ app.get('/database/changelog', (req, res) => {
 
 app.get('/docs', (req, res) => {
     res.send(`<!DOCTYPE html>
-<html lang="id" class="notranslate" translate="no">
+<html lang="id" class="notranslate light" translate="no">
 <head>
     <meta charset="UTF-8" />
     <meta name="google" content="notranslate" />
@@ -3078,111 +3078,6 @@ app.get('/docs', (req, res) => {
     }
     .scrollbar-hide::-webkit-scrollbar { display: none; }
     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-
-    #cyber-loader-overlay {
-        position: fixed;
-        inset: 0;
-        z-index: 99999;
-        background:linear-gradient(135deg,#f4fff1,#dff7df,#fffdf3);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.6s ease;
-    }
-
-    #cyber-loader-overlay.fade-out {
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
-    }
-
-    .scanner-beam {
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 300%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(0, 243, 255, 0.05), transparent);
-        animation: scanAnimation 4s infinite linear;
-    }
-    @keyframes scanAnimation {
-        0% { transform: translateY(-100%); }
-        100% { transform: translateY(100%); }
-    }
-
-    .hud-ring {
-        position: relative;
-        width: 130px;
-        height: 130px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .ring-outer {
-        position: absolute;
-        inset: 0;
-        border-radius: 50%;
-        border: 2px dashed var(--neon-cyan);
-        opacity: 0.6;
-        animation: spinClockwise 10s linear infinite;
-        box-shadow: 0 0 15px var(--neon-glow);
-    }
-
-    .ring-middle {
-        position: absolute;
-        inset: 10px;
-        border-radius: 50%;
-        border: 2px solid transparent;
-        border-top-color: var(--neon-cyan);
-        border-bottom-color: var(--neon-cyan);
-        animation: spinCounterClockwise 4s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
-    }
-
-    .ring-inner {
-        position: absolute;
-        inset: 20px;
-        border-radius: 50%;
-        border: 1px dotted var(--neon-cyan);
-        opacity: 0.8;
-        animation: spinClockwise 6s linear infinite;
-    }
-
-    .hud-avatar {
-        width: 65px;
-        height: 65px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 2px solid var(--neon-cyan);
-        box-shadow: 0 0 20px var(--neon-cyan);
-        z-index: 10;
-    }
-
-    @keyframes spinClockwise { 100% { transform: rotate(360deg); } }
-    @keyframes spinCounterClockwise { 100% { transform: rotate(-360deg); } }
-
-    .animated-dots::after {
-        content: '';
-        display: inline-block;
-        width: 1.5em;
-        text-align: left;
-        animation: dotsAnimation 1.5s steps(4, end) infinite;
-    }
-    @keyframes dotsAnimation {
-        0% { content: ''; }
-        25% { content: '.'; }
-        50% { content: '..'; }
-        75% { content: '...'; }
-    }
-
-    .neon-progress-bar {
-        background: linear-gradient(90deg, #06b6d4, var(--neon-cyan));
-        box-shadow: 0 0 12px var(--neon-cyan);
-        transition: width 0.15s ease-out;
-    }
 
 .cyber-popup-bg {
   background-color: #010811;
@@ -3412,43 +3307,20 @@ app.get('/docs', (req, res) => {
     overflow-wrap: anywhere;
   }
 }
+
+/* Light-only UI: keep endpoint titles/names readable on white cards. */
+body.light-mode #apiList .endpoint-name,
+body.light-mode #apiList .endpoint-title,
+body.light-mode #apiList .api-name,
+body.light-mode #apiList .api-title,
+body.light-mode #apiList [class*="endpoint-name"],
+body.light-mode #apiList [class*="endpoint-title"] {
+  color: #000000 !important;
+  text-shadow: none !important;
+}
 </style>
 </head>
-<body class="min-h-screen antialiased text-slate-900 relative">
-
-<div id="cyber-loader-overlay">
-    <div class="scanner-beam"></div>
-
-    <div class="hud-ring mb-6">
-        <div class="ring-outer"></div>
-        <div class="ring-middle"></div>
-        <div class="ring-inner"></div>
-        <img src="https://arulz-xd.my.id/files/Q2C70y.png" alt="Logo" class="hud-avatar">
-    </div>
-
-    <div class="text-center px-4">
-        <div id="loader-title-text" class="text-sm font-extrabold tracking-widest uppercase text-cyan-400 code-font mb-1">
-            Memuat Halaman<span class="animated-dots"></span>
-        </div>
-        <div class="text-[10px] text-slate-400 font-mono tracking-wider opacity-80 uppercase">
-            SYSTEM INITIALIZING // CORE GATEWAY
-        </div>
-    </div>
-
-    <div class="w-64 sm:w-80 mt-6">
-        <div class="flex items-center justify-between text-xs font-bold code-font mb-2">
-            <span class="text-slate-400 text-[10px]">SYSTEM STATUS</span>
-            <span id="loader-percentage" class="text-cyan-400 text-sm">0%</span>
-        </div>
-        <div class="w-full h-2 bg-slate-900/90 rounded-full border border-cyan-500/30 overflow-hidden p-0.5">
-            <div id="loader-progress-fill" class="h-full rounded-full neon-progress-bar w-0"></div>
-        </div>
-    </div>
-
-    <div class="absolute bottom-6 text-[10px] font-mono text-slate-500 uppercase tracking-widest">
-        XS-PEDIA API v2.0
-    </div>
-</div>
+<body class="min-h-screen antialiased text-slate-900 relative light-mode">
 
 <div id="themeBg" class="fixed inset-0 -z-10"></div>
 
@@ -3737,16 +3609,7 @@ app.get('/docs', (req, res) => {
             </div>
             
             <div class="flex items-center gap-1.5">
-                <button id="themeToggle" class="flex items-center justify-center w-8 h-8 rounded-lg transition-all active:scale-95 focus:outline-none border border-white/10 bg-slate-900/50 text-white light-mode:bg-slate-100 light-mode:border-slate-300 light-mode:text-slate-900">
-                    <svg id="theme-toggle-dark-icon" class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
-                    </svg>
-                    <svg id="theme-toggle-light-icon" class="w-4 h-4 hidden" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path>
-                    </svg>
-                </button>
-
-                <button id="closeMenuBtn" class="text-white hover:text-red-400 transition-colors p-1.5 border border-white/10 rounded bg-slate-900/40 light-mode:text-slate-700 light-mode:bg-slate-100 light-mode:border-slate-300 light-mode:hover:text-red-500">
+<button id="closeMenuBtn" class="text-white hover:text-red-400 transition-colors p-1.5 border border-white/10 rounded bg-slate-900/40 light-mode:text-slate-700 light-mode:bg-slate-100 light-mode:border-slate-300 light-mode:hover:text-red-500">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
@@ -4072,6 +3935,95 @@ app.get('/docs', (req, res) => {
 <script src="script.js"></script>
 
 <script>
+    // XS-PEDIA is intentionally light-only: no dark/light switch and no persisted dark mode.
+    (() => {
+        const root = document.documentElement;
+        const applyLightMode = () => {
+            root.classList.add('light');
+            root.classList.remove('dark');
+            document.body.classList.add('light-mode');
+            document.body.classList.remove('dark-mode');
+        };
+
+        try {
+            ['theme', 'color-theme', 'themeMode'].forEach((key) => localStorage.removeItem(key));
+        } catch (_) {}
+
+        applyLightMode();
+
+        // Keep the page light even if an older cached script tries to restore dark mode.
+        if (window.MutationObserver) {
+            new MutationObserver(applyLightMode).observe(root, {
+                attributes: true,
+                attributeFilter: ['class']
+            });
+        }
+    })();
+
+    // Endpoint names in the list are always black in the light UI.
+    (() => {
+        const apiList = document.getElementById('apiList');
+        if (!apiList) return;
+
+        const detailSelectors = [
+            '.endpoint-details',
+            '.endpoint-detail',
+            '.api-details',
+            '.api-detail',
+            '.endpoint-content',
+            '.endpoint-info',
+            '.request-response',
+            '.request-response-panel',
+            '.request-panel',
+            '.response-panel'
+        ].join(',');
+
+        let endpointNames = new Set();
+
+        const applyEndpointNameColors = () => {
+            if (!endpointNames.size) return;
+
+            const elements = apiList.querySelectorAll('h1,h2,h3,h4,h5,h6,a,span,div,strong,p');
+            elements.forEach((el) => {
+                const value = (el.textContent || '').trim();
+                if (!value || !endpointNames.has(value)) return;
+                if (el.closest(detailSelectors)) return;
+                el.style.setProperty('color', '#000000', 'important');
+                el.style.setProperty('text-shadow', 'none', 'important');
+            });
+        };
+
+        const loadEndpointNames = async () => {
+            try {
+                const response = await fetch('/api/apilist', {
+                    credentials: 'same-origin',
+                    cache: 'no-store'
+                });
+                const data = await response.json();
+                const categories = Array.isArray(data?.categories) ? data.categories : [];
+                endpointNames = new Set(
+                    categories.flatMap((category) =>
+                        Array.isArray(category?.items)
+                            ? category.items.map(item => String(item?.name || '').trim()).filter(Boolean)
+                            : []
+                    )
+                );
+                applyEndpointNameColors();
+            } catch (_) {}
+        };
+
+        if (window.MutationObserver) {
+            new MutationObserver(applyEndpointNameColors).observe(apiList, {
+                childList: true,
+                subtree: true
+            });
+        }
+
+        loadEndpointNames();
+    })();
+</script>
+
+<script>
         function copyText(text, label) {
             if (navigator.clipboard) {
                 navigator.clipboard.writeText(text).then(() => {
@@ -4321,84 +4273,6 @@ function fetchUserProfile() {
         document.addEventListener('DOMContentLoaded', () => {
             fetchUserProfile();
         });
-
-        function getPageDisplayName() {
-            const path = window.location.pathname;
-            let fileName = path.split('/').pop().replace('.html', '').toLowerCase();
-
-            if (!fileName || fileName === '' || fileName === 'index') return 'Home';
-
-            const pageMap = {
-                'home': 'Home',
-                'docs': 'Dokumentasi',
-                'doc': 'Dokumentasi',
-                'status': 'Status Server',
-                'store': 'Store API',
-                'changelog': 'Changelog',
-                'uploader': 'Uploader File',
-                'pastecode': 'Pastecode',
-                'feedback': 'Feedback',
-                'privacy': 'Kebijakan Privasi',
-                'support': 'Dukungan Support',
-                'login': 'Halaman Login'
-            };
-
-            if (pageMap[fileName]) return pageMap[fileName];
-            return fileName.charAt(0).toUpperCase() + fileName.slice(1);
-        }
-
-        const pageName = getPageDisplayName();
-        const loaderTitleEl = document.getElementById('loader-title-text');
-        if (loaderTitleEl) {
-            loaderTitleEl.innerHTML = 'Memuat ' + pageName + '<span class="animated-dots"></span>';
-        }
-
-        let currentProgress = 0;
-        let hasFinishedLoading = false;
-        const progressFill = document.getElementById('loader-progress-fill');
-        const percentageText = document.getElementById('loader-percentage');
-        const loaderOverlay = document.getElementById('cyber-loader-overlay');
-
-        function updateProgress(targetVal) {
-            currentProgress = Math.min(Math.max(currentProgress, targetVal), 100);
-            if (progressFill) progressFill.style.width = currentProgress + '%';
-            if (percentageText) percentageText.innerText = Math.floor(currentProgress) + '%';
-        }
-
-        let progressInterval = null;
-        function hideLoaderImmediately() {
-            if (loaderOverlay) {
-                loaderOverlay.classList.add('fade-out');
-                loaderOverlay.style.display = 'none';
-            }
-        }
-
-        function finishLoader() {
-            if (hasFinishedLoading) return;
-            hasFinishedLoading = true;
-            if (progressInterval) clearInterval(progressInterval);
-            updateProgress(100);
-            try { sessionStorage.setItem('xs_pedia_loader_seen', '1'); } catch (_) {}
-            setTimeout(() => {
-                if (loaderOverlay) {
-                    loaderOverlay.classList.add('fade-out');
-                    setTimeout(() => { loaderOverlay.style.display = 'none'; }, 650);
-                }
-            }, 180);
-        }
-
-        let hasSeenLoader = false;
-        try { hasSeenLoader = sessionStorage.getItem('xs_pedia_loader_seen') === '1'; } catch (_) {}
-        if (hasSeenLoader) {
-            hideLoaderImmediately();
-            hasFinishedLoading = true;
-        } else {
-            progressInterval = setInterval(() => {
-                if (currentProgress < 85) updateProgress(currentProgress + Math.random() * 12 + 5);
-            }, 120);
-            window.addEventListener('load', finishLoader, { once:true });
-            setTimeout(finishLoader, 1500);
-        }
 </script>
 
 </body>
