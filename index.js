@@ -3526,6 +3526,48 @@ body.light-mode #apiList [class*="endpoint-title"] {
     color:#0e7490 !important;
     border:1px solid #b8e8f3 !important;
   }
+
+  /* Restore the category logo boxes that were present in the original cards. */
+  #apiList .xs-category-card{
+    position:relative !important;
+    overflow:visible !important;
+  }
+  #apiList .xs-category-icon{
+    position:absolute !important;
+    left:32px !important;
+    top:50% !important;
+    transform:translateY(-50%) !important;
+    width:96px !important;
+    height:96px !important;
+    border-radius:22px !important;
+    background:#a8a9ad !important;
+    color:#86f0b0 !important;
+    border:2px solid #d5d8dc !important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.4), 0 4px 10px rgba(15,23,42,.08) !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    z-index:5 !important;
+  }
+  #apiList .xs-category-icon svg{
+    width:48px !important;
+    height:48px !important;
+    stroke:currentColor !important;
+    fill:none !important;
+  }
+  #apiList .xs-category-title{
+    margin-left:128px !important;
+  }
+  @media (max-width:640px){
+    #apiList .xs-category-icon{
+      left:28px !important;
+      width:96px !important;
+      height:96px !important;
+    }
+    #apiList .xs-category-title{
+      margin-left:128px !important;
+    }
+  }
 </style>
 
 <!-- User Profile Pop-up Modal -->
@@ -4111,6 +4153,61 @@ body.light-mode #apiList [class*="endpoint-title"] {
         }
 
         loadEndpointNames();
+
+        // Restore category logos/icons in the category header cards.
+        // The endpoint renderer is external (script.js), so add the icons after
+        // the category cards are mounted without touching endpoint detail cards.
+        (() => {
+            const iconSvgs = {
+                AI: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="7" width="16" height="12" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11h.01M16 11h.01M8 15h8M12 7V4M9 4h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M2 12v4M22 12v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+                AMPRO: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 12h16M12 4c2.2 2.2 3.3 4.9 3.3 8s-1.1 5.8-3.3 8c-2.2-2.2-3.3-4.9-3.3-8S9.8 6.2 12 4Z" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
+                KOMIKU: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H20v17H7.5A2.5 2.5 0 0 0 5 21.5v-17Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M5 5h12M9 8h7M9 12h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+                RANDOM: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h5v5M4 6h4c4 0 4 12 8 12h5M16 21h5v-5M4 18h4c1.7 0 2.8-2 3.5-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+                TOOLS: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a5 5 0 0 0-6.4 6.4L3 18l3 3 5.3-5.3a5 5 0 0 0 6.4-6.4l-3 3-2-2 3-3Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+                'XS-PEDIA': '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v14H5z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 9h8M8 12h6M8 15h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+                OTHER: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="4" width="6" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="4" y="14" width="6" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="6" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="2"/></svg>'
+            };
+
+            const addCategoryIcons = () => {
+                const cards = apiList.querySelectorAll(':scope > *');
+                cards.forEach((card) => {
+                    if (card.querySelector(':scope > .xs-category-icon')) return;
+
+                    const text = (card.textContent || '').replace(/\s+/g, ' ').trim();
+                    const countMatch = text.match(/(\d+)\s+endpoints?/i);
+                    if (!countMatch) return;
+
+                    let categoryName = '';
+                    const candidates = card.querySelectorAll('h1,h2,h3,h4,h5,h6,[class*="font-extrabold"],[class*="font-bold"]');
+                    for (const node of candidates) {
+                        const value = (node.textContent || '').replace(/\s+/g, ' ').trim().toUpperCase();
+                        if (iconSvgs[value]) { categoryName = value; break; }
+                    }
+                    if (!categoryName) {
+                        const known = Object.keys(iconSvgs).find(name => new RegExp('\\b' + name.replace(/[-]/g, '\\-') + '\\b', 'i').test(text));
+                        if (known) categoryName = known;
+                    }
+                    if (!categoryName) return;
+
+                    card.classList.add('xs-category-card');
+                    const icon = document.createElement('div');
+                    icon.className = 'xs-category-icon';
+                    icon.setAttribute('aria-hidden', 'true');
+                    icon.innerHTML = iconSvgs[categoryName];
+                    card.prepend(icon);
+
+                    const title = Array.from(candidates).find(node =>
+                        (node.textContent || '').replace(/\s+/g, ' ').trim().toUpperCase() === categoryName
+                    );
+                    if (title) title.classList.add('xs-category-title');
+                });
+            };
+
+            addCategoryIcons();
+            if (window.MutationObserver) {
+                new MutationObserver(addCategoryIcons).observe(apiList, { childList: true, subtree: true });
+            }
+        })();
 
         // Ensure READY and FREE badges in dynamically-rendered endpoint cards stay vivid.
         (() => {
