@@ -3365,75 +3365,136 @@ body.light-mode #apiList [class*="endpoint-title"] {
       </div>
     </div>
     
-<!-- Bright Comic Green Theme Overrides -->
+<!-- Bright White Theme Overrides -->
 <style>
   :root{
-    --comic-ink:#244235;
-    --comic-green:#48c774;
-    --comic-green-2:#8be28f;
-    --comic-mint:#effff0;
-    --comic-cream:#fffdf5;
-    --comic-border:#b8dcb8;
+    --ui-ink:#0f172a;
+    --ui-muted:#64748b;
+    --ui-accent:#06b6d4;
+    --ui-accent-soft:#e0f7fb;
+    --ui-border:#d9e2e8;
+    --ui-card:#ffffff;
+    --ui-page:#ffffff;
   }
+
+  html, body, body.light-mode{
+    background:#ffffff !important;
+    color:var(--ui-ink) !important;
+  }
+
   body{
-    background:
-      radial-gradient(circle at 10% 0%, rgba(139,226,143,.42), transparent 34%),
-      radial-gradient(circle at 100% 20%, rgba(72,199,116,.25), transparent 30%),
-      linear-gradient(135deg,#f7fff5 0%,#ecfff0 48%,#fdfcf3 100%) !important;
-    color:var(--comic-ink) !important;
     font-family: Georgia,'Times New Roman',serif !important;
   }
-  body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.22;background-image:radial-gradient(#67b978 1px,transparent 1px);background-size:18px 18px;z-index:-1}
-  .glass-panel{background:rgba(255,255,252,.9)!important;border:2px solid rgba(94,151,100,.22)!important;box-shadow:0 8px 24px rgba(69,114,76,.10)!important;color:#31513e!important}
-  .light-mode .glass-panel{background:rgba(255,255,252,.96)!important;border-color:rgba(94,151,100,.24)!important}
-  .light-mode{background:transparent!important;color:var(--comic-ink)!important}
-  .light-mode #mainTitle,.light-mode #mainDescription,.light-mode #no-results-title{color:var(--comic-ink)!important}
-  .filter-btn{border:2px solid #afd8af!important;background:rgba(255,255,255,.7)!important;color:#547161!important;border-radius:999px!important;padding:10px 18px!important;font-family:Georgia,'Times New Roman',serif!important;font-size:14px!important;font-weight:700!important;box-shadow:4px 4px 0 rgba(95,137,100,.12);white-space:nowrap}
-  .filter-btn:hover{background:#eaffea!important;color:#31513e!important}
-  .filter-btn.active{background:linear-gradient(135deg,#35b86a,#8fe28c)!important;color:#123b24!important;border-color:#54bc71!important}
-  .category-scroll{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;scroll-snap-type:x proximity!important;padding:4px 4px 12px!important;-webkit-overflow-scrolling:touch}
-  .category-scroll .filter-btn{flex:0 0 auto!important;scroll-snap-align:start}
-  #bioDropdown{background:linear-gradient(180deg,#fbfff8,#edffef)!important;border-left:2px solid #9dce9e!important;color:#355040!important}
-  #bioDropdown .menu-link span{color:#4e6d58!important}
-  #bioDropdown .menu-link:hover{background:#e6f8e7!important}
-  #bioDropdown nav>div{color:#6c8a73!important}
-  .music-player-card{background:rgba(255,255,252,.94)!important;border:2px solid #c4dfc2!important;box-shadow:0 8px 24px rgba(69,114,76,.10)!important}
-  .music-text-title{color:#31513e!important}.music-text-artist{color:#6f8274!important}
-  #profilePopup{font-family:Georgia,'Times New Roman',serif}
-  #profilePopup .profile-card{background:linear-gradient(145deg,#fbfff8,#fffdf7)!important;border:2px solid #acd5ac!important;box-shadow:0 18px 50px rgba(49,101,59,.18)!important}
-  #profilePopup .profile-chip{background:linear-gradient(135deg,#f1fff0,#e6f9e7)!important;border:2px solid #6bb274!important;color:#477259!important;box-shadow:4px 4px 0 rgba(94,151,100,.10)}
-  #profilePopup .profile-docs{background:linear-gradient(135deg,#2c9a5f,#79c66d)!important;box-shadow:5px 5px 0 rgba(55,122,77,.12)!important}
-  #profilePopup .profile-main{background:rgba(255,255,250,.95)!important;border:2px solid #d0e6ce!important}
-  #profilePopup .profile-row{border-bottom:2px dashed #cde2ca!important}
-  #profilePopup .profile-badge{background:linear-gradient(135deg,#dff4df,#f2fbec)!important;color:#52705b!important}
-  #profilePopup .profile-key-box,#profilePopup .profile-log{background:linear-gradient(135deg,#f2fbef,#fffdf7)!important;border:2px solid #d0e3cc!important}
-  #profilePopup .profile-copy,#profilePopup .profile-upgrade{background:linear-gradient(135deg,#e7f8e6,#f5f8ed)!important;border:2px solid #6eb176!important;color:#4c7259!important;box-shadow:4px 4px 0 rgba(85,132,90,.10)}
-  #profilePopup .profile-upgrade{background:linear-gradient(135deg,#2f925a,#7bc96c)!important;color:#fff!important;border:0!important}
-  #profilePopup .profile-footer .profile-close{background:#f8fff6!important;border:2px solid #b8d9b5!important;color:#385843!important}
-  #profilePopup .profile-footer .profile-logout{background:#fff7f7!important}
-  #profilePopup .profile-avatar-ring{border:3px solid #72a974!important;box-shadow:5px 5px 0 rgba(91,133,94,.10)!important}
-  #profilePopup .profile-camera{background:linear-gradient(135deg,#3c9e62,#83cb74)!important;border-color:#fff!important}
-  #profilePopup .profile-title{color:#294335!important}
-  #profilePopup .profile-subtitle{color:#6c8174!important}
-  #profilePopup .profile-label{color:#718176!important}
-  #profilePopup .profile-value,#profilePopup .profile-name{color:#30483b!important}
-  #profilePopup .profile-value.accent{color:#4c805d!important}
-  @media(max-width:640px){
-    #profilePopup .profile-wrap{padding:10px!important}
-    #profilePopup .profile-card{max-width:430px!important;border-radius:24px!important;padding:12px!important}
-    #profilePopup .profile-main{padding:15px 13px!important}
-    #profilePopup .profile-title{font-size:26px!important}
-    #profilePopup .profile-subtitle{font-size:13px!important}
-    #profilePopup .profile-identity{gap:10px!important}
-    #profilePopup .profile-avatar-wrap{width:70px!important;height:70px!important;flex-basis:70px!important}
-    #profilePopup .profile-name{font-size:18px!important}
-    #profilePopup .profile-row{padding:10px 0!important}
-    #profilePopup .profile-label{font-size:13px!important}
-    #profilePopup .profile-value{font-size:13px!important}
-    #profilePopup .profile-section{margin-top:13px!important}
-    #profilePopup .profile-section-title{font-size:13px!important}
-    #profilePopup .profile-log{grid-template-columns:auto minmax(0,1fr)!important}
-    #profilePopup .profile-log-meta{grid-column:2!important;text-align:left!important;margin-top:-2px!important}
+
+  body:before{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    opacity:1;
+    background-image:radial-gradient(#cbd5e1 1.4px,transparent 1.4px) !important;
+    background-size:24px 24px !important;
+    z-index:-1;
+  }
+
+  #themeBg{
+    background:#ffffff !important;
+    background-image:none !important;
+  }
+
+  .glass-panel,
+  .light-mode .glass-panel{
+    background:#ffffff !important;
+    color:var(--ui-ink) !important;
+    border:2px solid #dfe7ec !important;
+    box-shadow:0 6px 20px rgba(15,23,42,.06) !important;
+  }
+
+  .filter-btn{
+    border:2px solid #cbd8df !important;
+    background:#ffffff !important;
+    color:#334155 !important;
+    box-shadow:4px 4px 0 rgba(15,23,42,.05) !important;
+  }
+  .filter-btn:hover{
+    background:#f8fafc !important;
+    color:#0f172a !important;
+  }
+  .filter-btn.active{
+    background:#dff7fb !important;
+    color:#0e7490 !important;
+    border-color:#8bd8e7 !important;
+  }
+
+  .lang-btn{
+    background:#ffffff !important;
+    color:#334155 !important;
+    border-color:#cbd8df !important;
+  }
+  .lang-btn.active{
+    background:#cffafe !important;
+    color:#155e75 !important;
+    border-color:#67e8f9 !important;
+  }
+
+  #bioDropdown{
+    background:#ffffff !important;
+    border-left:2px solid #dbe4ea !important;
+    color:#334155 !important;
+  }
+  #bioDropdown .menu-link span{color:#334155 !important}
+  #bioDropdown .menu-link:hover{background:#f8fafc !important}
+  #bioDropdown nav>div{color:#64748b !important}
+
+  .music-player-card{
+    background:#ffffff !important;
+    border:2px solid #dfe7ec !important;
+    box-shadow:0 6px 20px rgba(15,23,42,.06) !important;
+  }
+  .music-text-title{color:#0f172a !important}
+  .music-text-artist{color:#64748b !important}
+
+  #mainTitle{color:#0f172a !important}
+  #mainDescription{color:#64748b !important}
+  #stat-battery-title,#stat-endpoints-title,#stat-categories-title{color:#475569 !important}
+  #siteFooter{color:#64748b !important;border-color:#e2e8f0 !important}
+  #no-results-title{color:#0f172a !important}
+
+  /* Endpoint list cards stay white; endpoint names remain solid black. */
+  #apiList > *{
+    background:#ffffff !important;
+    color:#0f172a !important;
+    border-color:#dfe7ec !important;
+    box-shadow:0 6px 18px rgba(15,23,42,.055) !important;
+  }
+  #apiList h1,#apiList h2,#apiList h3,#apiList h4,#apiList h5,#apiList h6,
+  #apiList a,#apiList span,#apiList div,#apiList strong,#apiList p{
+    text-shadow:none !important;
+  }
+  body.light-mode #apiList .endpoint-name,
+  body.light-mode #apiList .endpoint-title,
+  body.light-mode #apiList .api-name,
+  body.light-mode #apiList .api-title,
+  body.light-mode #apiList [class*="endpoint-name"],
+  body.light-mode #apiList [class*="endpoint-title"]{
+    color:#000000 !important;
+    text-shadow:none !important;
+  }
+
+  /* Free badge: bright/clear like the Premium & VIP badges. */
+  #userLimitBadge{
+    background:#e0f7fb !important;
+    color:#0e7490 !important;
+    border:1px solid #a5e5f0 !important;
+    box-shadow:none !important;
+    font-weight:800 !important;
+  }
+
+  /* Keep role/profile badges bright on the white theme. */
+  #userPlanTextBadge{
+    background:linear-gradient(135deg,#e7f8ff,#f3fbff) !important;
+    color:#0e7490 !important;
+    border:1px solid #b8e8f3 !important;
   }
 </style>
 
