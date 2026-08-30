@@ -102,6 +102,7 @@ const userSchema = new mongoose.Schema({
     resetPasswordToken: String,
     resetPasswordExpires: Date,
     apikey: { type: String, required: true, unique: true },
+    customApiKey: { type: String, default: null },
     role: { type: String, default: 'Free User' }, // 'Free User', 'Premium User', 'VIP User'
     roleExpiresAt: { type: Date, default: null }, // MASA BERLAKU ROLE
     limit: { type: Number, default: 0 },
@@ -113,8 +114,7 @@ const userSchema = new mongoose.Schema({
     phoneVerifiedAt: { type: Date, default: null },
     phoneOtpHash: { type: String, default: null },
     phoneOtpExpiresAt: { type: Date, default: null },
-    phoneOtpAttempts: { type: Number, default: 0 },
-    pendingPhoneNumber: { type: String, default: null }
+    phoneOtpAttempts: { type: Number, default: 0 }
 });
 
 // Middleware Otomatis Update API Key saat Role Berubah jika tidak ditentukan khusus
@@ -187,6 +187,7 @@ cron.schedule('0 * * * *', async () => {
             user.role = 'Free User';
             user.roleExpiresAt = null;
             user.apikey = generateFreeApiKey(); // Reset API Key ke Format Free
+            user.customApiKey = null; // Custom key hanya berlaku sampai role berakhir
             await user.save();
             console.log(`📉 [EXPIRED] Role pengguna ${user.username} dikembalikan ke Free User.`);
         }
@@ -314,6 +315,7 @@ app.post('/api/user/custom-apikey', checkAuthSession, async (req, res) => {
         }
 
         user.apikey = cleanKey;
+        user.customApiKey = cleanKey;
         await user.save();
 
         // Update Token JWT
@@ -1106,20 +1108,38 @@ app.get('/transactions/:orderId', async (req, res) => {
                     targetUser.role = targetRole;
                     targetUser.roleExpiresAt = currentExpiry;
 
-                    // Premium mendapatkan key otomatis baru; VIP mempertahankan custom key jika ada.
-                    if (targetRole === 'Premium User') {
+                    // Pertahankan Custom API Key yang sudah disimpan selama role masih aktif.
+                    // Hanya buat key otomatis jika user belum pernah melakukan custom key.
+                    const normalizedRole = targetRole.toLowerCase();
+                    const currentApiKey = String(targetUser.apikey || '').trim();
+                    const cleanTargetUsername = String(targetUser.username || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                    const looksLikeAutomaticPremiumKey = currentApiKey.startsWith(cleanTargetUsername + 'prem-');
+                    const looksLikeAutomaticVipKey = currentApiKey === `${String(targetUser.username || '').toLowerCase()}-custom-vip`;
+
+                    // Custom key HARUS tetap permanen selama role masih aktif.
+                    // Kompatibilitas user lama: kalau customApiKey belum ada tetapi apikey sekarang
+                    // bukan key otomatis, anggap apikey tersebut sebagai custom key lama.
+                    if (targetUser.customApiKey && String(targetUser.customApiKey).trim()) {
+                        targetUser.apikey = String(targetUser.customApiKey).trim();
+                    } else if (currentApiKey && normalizedRole.includes('premium') && !looksLikeAutomaticPremiumKey && !currentApiKey.startsWith('xs-pedia')) {
+                        targetUser.customApiKey = currentApiKey;
+                        targetUser.apikey = currentApiKey;
+                    } else if (currentApiKey && normalizedRole.includes('vip') && !looksLikeAutomaticVipKey && !currentApiKey.startsWith('xs-pedia')) {
+                        targetUser.customApiKey = currentApiKey;
+                        targetUser.apikey = currentApiKey;
+                    } else if (targetRole === 'Premium User') {
+                        targetUser.customApiKey = null;
                         targetUser.apikey = generatePremiumApiKey(targetUser.username);
                     } else if (targetRole === 'VIP User') {
-                        if (!targetUser.apikey || targetUser.apikey.startsWith('xs-pedia')) {
-                            targetUser.apikey = `${targetUser.username.toLowerCase()}-custom-vip`;
-                        }
+                        targetUser.customApiKey = null;
+                        targetUser.apikey = `${targetUser.username.toLowerCase()}-custom-vip`;
                     }
 
                     // Update langsung ke collection users agar benar-benar tersimpan di DB
                     // yang dipakai aplikasi, bukan hanya mengandalkan object Mongoose lokal.
                     const updateResult = await User.updateOne(
                         { _id: targetUser._id },
-                        { $set: { role: targetRole, roleExpiresAt: currentExpiry, apikey: targetUser.apikey } }
+                        { $set: { role: targetRole, roleExpiresAt: currentExpiry, apikey: targetUser.apikey, customApiKey: targetUser.customApiKey || null } }
                     );
                     if (!updateResult.matchedCount) {
                         throw new Error(`Gagal menemukan document users untuk _id=${targetUser._id}`);
@@ -2169,7 +2189,9 @@ app.get('/api/user-status', async (req, res) => {
                     email: activeUser.email,
                     avatar: activeUser.avatar,
                     apikey: activeUser.apikey,
+                    customApiKey: activeUser.customApiKey || null,
                     role: activeUser.role,
+                    roleExpiresAt: activeUser.roleExpiresAt || null,
                     phoneNumber: activeUser.phoneNumber || null,
                     phoneVerified: Boolean(activeUser.phoneVerified)
                 }
@@ -2183,7 +2205,9 @@ app.get('/api/user-status', async (req, res) => {
                     email: req.user.email,
                     avatar: req.user.avatar,
                     apikey: req.user.apikey,
+                    customApiKey: req.user.customApiKey || null,
                     role: req.user.role,
+                    roleExpiresAt: req.user.roleExpiresAt || null,
                     phoneNumber: req.user.phoneNumber || null,
                     phoneVerified: Boolean(req.user.phoneVerified)
                 }
@@ -2217,9 +2241,7 @@ app.post('/api/profile/update', checkAuthSession, async (req, res) => {
         const emailChanged = user.email !== email;
         user.username = username;
         user.email = email;
-        // Jangan mengganti API key yang sudah custom/tersimpan di MongoDB saat username berubah.
-        // API key hanya digenerate otomatis bila user Premium belum memiliki key yang valid.
-        if (usernameChanged && String(user.role).toLowerCase().includes('premium') && !user.apikey) {
+        if (usernameChanged && String(user.role).toLowerCase().includes('premium')) {
             user.apikey = generatePremiumApiKey(username);
         }
         await user.save();
@@ -2248,49 +2270,20 @@ app.post('/api/profile/send-phone-otp', checkAuthSession, async (req, res) => {
         const user = await User.findById(req.user.id || req.user._id);
         if (!user) return res.status(404).json({ status: false, message: 'User tidak ditemukan!' });
 
-        // Jika nomor sudah terdaftar dan berbeda, nomor lama tetap aman sampai nomor baru diverifikasi.
-        const existingVerifiedPhone = normalizePhoneNumber(user.phoneNumber);
-        const isChangingNumber = Boolean(existingVerifiedPhone && existingVerifiedPhone !== phone);
-
         const otp = issuePhoneOtp();
-        user.pendingPhoneNumber = phone;
+        user.phoneNumber = phone;
+        user.phoneVerified = false;
+        user.phoneVerifiedAt = null;
         user.phoneOtpHash = crypto.createHash('sha256').update(otp).digest('hex');
         user.phoneOtpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
         user.phoneOtpAttempts = 0;
         await user.save();
 
-        const otpMessage = [
-            '🔐 *VERIFIKASI NOMOR XS-PEDIA*',
-            '',
-            `Halo ${user.username || 'User'} 👋`,
-            isChangingNumber ? 'Kami menerima permintaan untuk mengganti nomor WhatsApp akun kamu.' : 'Kami menerima permintaan verifikasi nomor WhatsApp akun kamu.',
-            '',
-            `🔢 *Kode OTP:* ${otp}`,
-            '⏳ *Berlaku:* 5 menit',
-            '',
-            '⚠️ Jangan bagikan kode ini kepada siapa pun.',
-            'Jika kamu tidak merasa meminta kode ini, abaikan pesan ini.'
-        ].join('\n');
+        const result = await sendFonnteMessage(phone, `Kode verifikasi nomor Anda: ${otp}\nBerlaku 5 menit. Jangan berikan kode ini kepada siapa pun.`);
+        if (!result.status) return res.status(502).json({ status: false, message: 'Gagal mengirim OTP ke WhatsApp.' });
 
-        const result = await sendFonnteMessage(phone, otpMessage);
-        if (!result.status) {
-            user.pendingPhoneNumber = null;
-            user.phoneOtpHash = null;
-            user.phoneOtpExpiresAt = null;
-            user.phoneOtpAttempts = 0;
-            await user.save();
-            return res.status(502).json({ status: false, message: 'Gagal mengirim OTP ke WhatsApp. Silakan coba lagi.' });
-        }
-
-        console.log(`📞 [PHONE OTP] User=${user.username} PHONE_BARU=${phone} EXISTING=${user.phoneNumber || '-'} OTP terkirim.`);
-        res.json({
-            status: true,
-            phoneNumber: phone,
-            expiresIn: 300,
-            message: isChangingNumber
-                ? 'OTP sudah dikirim ke nomor baru kamu. Nomor lama tetap tersimpan sampai OTP berhasil diverifikasi. Kode berlaku 5 menit.'
-                : 'OTP verifikasi sudah dikirim ke WhatsApp kamu. Masukkan 6 digit kode tersebut dalam 5 menit.'
-        });
+        console.log(`📞 [PHONE OTP] User=${user.username} PHONE=${phone} OTP terkirim.`);
+        res.json({ status: true, message: 'OTP 6 digit berhasil dikirim ke WhatsApp Anda.' });
     } catch (error) {
         console.error('❌ Gagal kirim OTP nomor:', error.message);
         res.status(500).json({ status: false, message: 'Gagal mengirim OTP.' });
@@ -2305,46 +2298,29 @@ app.post('/api/profile/verify-phone', checkAuthSession, async (req, res) => {
 
         const user = await User.findById(req.user.id || req.user._id);
         if (!user) return res.status(404).json({ status: false, message: 'User tidak ditemukan!' });
-        if (!user.pendingPhoneNumber) return res.status(400).json({ status: false, message: 'Belum ada permintaan verifikasi nomor baru.' });
+        if (!user.phoneNumber) return res.status(400).json({ status: false, message: 'Belum ada nomor yang meminta verifikasi.' });
         if (!user.phoneOtpHash || !user.phoneOtpExpiresAt || new Date() > new Date(user.phoneOtpExpiresAt)) {
-            return res.status(400).json({ status: false, message: 'OTP sudah kedaluwarsa. Silakan minta OTP baru.' });
+            return res.status(400).json({ status: false, message: 'OTP sudah kedaluwarsa. Minta OTP baru.' });
         }
 
         user.phoneOtpAttempts = Number(user.phoneOtpAttempts || 0) + 1;
         const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
         if (otpHash !== user.phoneOtpHash) {
             await user.save();
-            return res.status(400).json({ status: false, message: 'OTP salah. Periksa kembali 6 digit kode yang dikirim.' });
+            return res.status(400).json({ status: false, message: 'OTP salah.' });
         }
 
-        const oldPhone = user.phoneNumber || null;
-        const verifiedPhone = user.pendingPhoneNumber;
-        user.phoneNumber = verifiedPhone;
         user.phoneVerified = true;
         user.phoneVerifiedAt = new Date();
-        user.pendingPhoneNumber = null;
         user.phoneOtpHash = null;
         user.phoneOtpExpiresAt = null;
         user.phoneOtpAttempts = 0;
         await user.save();
 
-        const ownerMessage = [
-            '📱 *VERIFIKASI NOMOR BERHASIL*',
-            '',
-            `👤 Username: ${user.username}`,
-            `📧 Email: ${user.email}`,
-            `📞 Nomor Baru: ${user.phoneNumber}`,
-            `📞 Nomor Lama: ${oldPhone || '-'}`,
-            `🕒 Waktu: ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}`
-        ].join('\n');
+        const ownerMessage = `📱 VERIFIKASI NOMOR BERHASIL\n\n👤 Username: ${user.username}\n📧 Email: ${user.email}\n📞 Nomor: ${user.phoneNumber}\n🕒 Waktu: ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}`;
         if (FONNTE_OWNER_NUMBER) await sendFonnteMessage(FONNTE_OWNER_NUMBER, ownerMessage);
 
-        res.json({
-            status: true,
-            message: '✅ Nomor WhatsApp berhasil diverifikasi dan disimpan ke akun kamu.',
-            phoneNumber: user.phoneNumber,
-            phoneVerified: true
-        });
+        res.json({ status: true, message: 'Nomor WhatsApp berhasil diverifikasi!', phoneNumber: user.phoneNumber, phoneVerified: true });
     } catch (error) {
         console.error('❌ Gagal verifikasi nomor:', error.message);
         res.status(500).json({ status: false, message: 'Gagal memverifikasi nomor.' });
@@ -4062,33 +4038,17 @@ body:before{content:none !important;}
             </div>
           </div>
 
-          <div class="profile-section mt-4" id="accountEditSection">
-            <div class="profile-section-title">Edit Account</div>
-            <div class="profile-key-box">
-              <input id="editUsernameInput" type="text" placeholder="Username" class="w-full bg-transparent border-b border-[#d6e5d1] px-1 py-2 text-sm outline-none mb-2">
-              <input id="editEmailInput" type="email" placeholder="Gmail / Email" class="w-full bg-transparent px-1 py-2 text-sm outline-none">
-              <button onclick="saveProfileSettings()" class="profile-copy">SIMPAN PROFIL</button>
+          <div class="profile-row">
+            <span class="profile-label">Nomor WhatsApp</span>
+            <div class="profile-actions">
+              <span id="userPhoneNumber" class="profile-value truncate">-</span>
             </div>
           </div>
 
-          <div class="profile-section">
-            <div class="profile-section-title">Verifikasi Nomor WhatsApp</div>
-            <div class="profile-key-box">
-              <div class="text-[10px] text-[#7a8a82] mb-2">Nomor yang tampil di bawah diambil langsung dari database akun.</div>
-              <input id="phoneNumberInput" type="tel" placeholder="Contoh: 628123456789" class="w-full bg-transparent border-b border-[#d6e5d1] px-1 py-2 text-sm outline-none mb-2">
-              <button onclick="sendPhoneOtp()" id="sendPhoneOtpBtn" class="profile-copy">KIRIM / GANTI NOMOR</button>
-              <div id="phoneOtpBox" class="hidden mt-3">
-                <div id="phoneOtpNotice" class="rounded-xl border border-[#cfe1cc] bg-[#f4faf1] px-3 py-3 text-[11px] text-[#52645a] leading-relaxed mb-2">
-                  🔐 OTP 6 digit telah dikirim. Masukkan kode sebelum waktunya habis.
-                </div>
-                <input id="phoneOtpInput" inputmode="numeric" maxlength="6" placeholder="Masukkan OTP 6 digit" class="w-full bg-transparent border-b border-[#d6e5d1] px-1 py-2 text-sm outline-none mb-2">
-                <div class="flex gap-2">
-                  <button onclick="verifyPhoneOtp()" id="verifyPhoneOtpBtn" class="profile-copy flex-1">VERIFIKASI</button>
-                  <button onclick="resendPhoneOtp()" id="resendPhoneOtpBtn" class="profile-copy flex-1 !bg-[#eef2ed] !text-[#607267]" disabled>REQUEST ULANG</button>
-                </div>
-                <div id="phoneOtpCountdown" class="text-[11px] mt-2 text-center font-bold text-[#65806e]">OTP berlaku 05:00</div>
-              </div>
-              <div id="phoneVerifyStatus" class="text-[11px] mt-2 font-bold text-[#607267]">Belum diverifikasi</div>
+          <div class="profile-row">
+            <span class="profile-label">Masa Aktif</span>
+            <div class="profile-actions">
+              <span id="userRoleCountdown" class="profile-value">Tidak ada masa aktif</span>
             </div>
           </div>
 
@@ -4756,7 +4716,8 @@ body:before{content:none !important;}
                 if (resData.status) {
                     alert(resData.message);
                     document.getElementById('userApiKey').innerText = resData.apikey;
-                    input.value = '';
+                    input.value = resData.apikey || '';
+                    if (typeof fetchUserProfile === 'function') fetchUserProfile();
                 } else {
                     alert(resData.message || 'Gagal mengubah API Key.');
                 }
@@ -4854,107 +4815,38 @@ body:before{content:none !important;}
             syncProfileMirrorFields();
         });
 
-        async function saveProfileSettings() {
-            const username = document.getElementById('editUsernameInput')?.value.trim();
-            const email = document.getElementById('editEmailInput')?.value.trim();
-            if (!username || !email) return alert('Username dan email wajib diisi.');
-            try {
-                const response = await fetch('/api/profile/update', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
-                    body: JSON.stringify({ username, email })
-                });
-                const data = await response.json();
-                alert(data.message || 'Selesai');
-                if (data.status) fetchUserProfile();
-            } catch (e) { alert('Gagal menyimpan profil.'); }
-        }
+        let roleCountdownTimer = null;
 
-        let phoneOtpCountdownTimer = null;
-        let phoneOtpExpiresAtMs = 0;
-        let phoneOtpLastNumber = '';
+        function updateRoleCountdown(expiryValue, roleName) {
+            const el = document.getElementById('userRoleCountdown');
+            if (!el) return;
+            if (roleCountdownTimer) { clearInterval(roleCountdownTimer); roleCountdownTimer = null; }
 
-        function startPhoneOtpCountdown(seconds) {
-            if (phoneOtpCountdownTimer) clearInterval(phoneOtpCountdownTimer);
-            phoneOtpExpiresAtMs = Date.now() + (Number(seconds || 300) * 1000);
-            const countdownEl = document.getElementById('phoneOtpCountdown');
-            const resendBtn = document.getElementById('resendPhoneOtpBtn');
-            if (resendBtn) resendBtn.disabled = true;
+            const role = String(roleName || '').toLowerCase();
+            const expiry = expiryValue ? new Date(expiryValue).getTime() : NaN;
+            if (!role || role.includes('free') || !Number.isFinite(expiry)) {
+                el.textContent = role.includes('free') ? 'Gratis / Tidak kedaluwarsa' : 'Tidak ada masa aktif';
+                return;
+            }
 
-            const tick = () => {
-                const remaining = Math.max(0, phoneOtpExpiresAtMs - Date.now());
-                const totalSeconds = Math.ceil(remaining / 1000);
-                const minutes = Math.floor(totalSeconds / 60);
-                const secs = totalSeconds % 60;
-                if (countdownEl) countdownEl.textContent = remaining > 0
-                    ? 'OTP berlaku ' + String(minutes).padStart(2,'0') + ':' + String(secs).padStart(2,'0')
-                    : 'OTP sudah kedaluwarsa. Silakan request ulang.';
-                if (remaining <= 0) {
-                    clearInterval(phoneOtpCountdownTimer);
-                    phoneOtpCountdownTimer = null;
-                    if (resendBtn) resendBtn.disabled = false;
+            const render = () => {
+                const diff = expiry - Date.now();
+                if (diff <= 0) {
+                    el.textContent = 'Sudah berakhir';
+                    clearInterval(roleCountdownTimer);
+                    roleCountdownTimer = null;
+                    setTimeout(fetchUserProfile, 500);
+                    return;
                 }
+                const totalSeconds = Math.floor(diff / 1000);
+                const days = Math.floor(totalSeconds / 86400);
+                const hours = Math.floor((totalSeconds % 86400) / 3600);
+                const mins = Math.floor((totalSeconds % 3600) / 60);
+                const secs = totalSeconds % 60;
+                el.textContent = days + ' Hari ' + String(hours).padStart(2,'0') + ':' + String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0');
             };
-            tick();
-            phoneOtpCountdownTimer = setInterval(tick, 1000);
-        }
-
-        async function sendPhoneOtp(forceNumber = null) {
-            const input = document.getElementById('phoneNumberInput');
-            const phone = String(forceNumber || input?.value || '').trim();
-            if (!phone) return alert('Masukkan nomor WhatsApp terlebih dahulu.');
-            const btn = document.getElementById('sendPhoneOtpBtn');
-            if (btn) btn.disabled = true;
-            try {
-                const response = await fetch('/api/profile/send-phone-otp', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
-                    body: JSON.stringify({ phoneNumber: phone })
-                });
-                const data = await response.json();
-                if (!response.ok || !data.status) throw new Error(data.message || 'Gagal mengirim OTP.');
-                phoneOtpLastNumber = data.phoneNumber || phone;
-                document.getElementById('phoneOtpBox')?.classList.remove('hidden');
-                const notice = document.getElementById('phoneOtpNotice');
-                if (notice) notice.innerHTML = '✅ <b>OTP berhasil dikirim.</b><br>Kode verifikasi 6 digit sudah dikirim ke <b>' + phoneOtpLastNumber + '</b>. OTP berlaku 5 menit. Nomor lama tetap aman sampai verifikasi berhasil.';
-                startPhoneOtpCountdown(data.expiresIn || 300);
-                const otpInput = document.getElementById('phoneOtpInput');
-                if (otpInput) { otpInput.value = ''; otpInput.focus(); }
-            } catch (e) {
-                alert(e.message || 'Gagal mengirim OTP.');
-            } finally {
-                if (btn) btn.disabled = false;
-            }
-        }
-
-        async function resendPhoneOtp() {
-            const number = phoneOtpLastNumber || document.getElementById('phoneNumberInput')?.value.trim();
-            if (!number) return alert('Masukkan nomor WhatsApp terlebih dahulu.');
-            await sendPhoneOtp(number);
-        }
-
-        async function verifyPhoneOtp() {
-            const otp = document.getElementById('phoneOtpInput')?.value.trim();
-            if (!/^\d{6}$/.test(otp)) return alert('Masukkan OTP 6 digit.');
-            const btn = document.getElementById('verifyPhoneOtpBtn');
-            if (btn) btn.disabled = true;
-            try {
-                const response = await fetch('/api/profile/verify-phone', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
-                    body: JSON.stringify({ otp })
-                });
-                const data = await response.json();
-                if (!response.ok || !data.status) throw new Error(data.message || 'Gagal memverifikasi nomor.');
-                if (phoneOtpCountdownTimer) clearInterval(phoneOtpCountdownTimer);
-                phoneOtpCountdownTimer = null;
-                document.getElementById('phoneVerifyStatus').textContent = '✅ Nomor terverifikasi: ' + (data.phoneNumber || '');
-                document.getElementById('phoneNumberInput').value = data.phoneNumber || '';
-                document.getElementById('phoneOtpBox')?.classList.add('hidden');
-                alert('✅ Nomor berhasil diverifikasi dan tersimpan di database.');
-                fetchUserProfile();
-            } catch (e) {
-                alert(e.message || 'Gagal memverifikasi nomor.');
-            } finally {
-                if (btn) btn.disabled = false;
-            }
+            render();
+            roleCountdownTimer = setInterval(render, 1000);
         }
 
 function fetchUserProfile() {
@@ -4973,18 +4865,12 @@ function fetchUserProfile() {
                         
                         const userKey = data.user.apikey || '';
                         document.getElementById('userApiKey').innerText = userKey || 'No Key Found';
-                        const editUsername = document.getElementById('editUsernameInput');
-                        const editEmail = document.getElementById('editEmailInput');
-                        const phoneInput = document.getElementById('phoneNumberInput');
-                        const phoneStatus = document.getElementById('phoneVerifyStatus');
-                        if (editUsername) editUsername.value = data.user.username || '';
-                        if (editEmail) editEmail.value = data.user.email || '';
-                        if (phoneInput) phoneInput.value = data.user.phoneNumber || '';
-                        if (phoneStatus) phoneStatus.textContent = data.user.phoneVerified
-                            ? '✅ Nomor terverifikasi: ' + (data.user.phoneNumber || '')
-                            : (data.user.phoneNumber ? '⚠️ Nomor terdaftar, belum terverifikasi' : 'Belum diverifikasi');
-                                                
+                        const phoneEl = document.getElementById('userPhoneNumber');
+                        if (phoneEl) phoneEl.innerText = data.user.phoneNumber ? (data.user.phoneNumber + (data.user.phoneVerified ? ' • Terverifikasi' : '')) : 'Belum terdaftar';
+                        const customInput = document.getElementById('customApiKeyInput');
+                        if (customInput && data.user.customApiKey) customInput.value = data.user.customApiKey;
                         setRoleTheme(data.user.role || 'Free User');
+                        updateRoleCountdown(data.user.roleExpiresAt, data.user.role);
 
                         fetchUserActivityLogs(userKey);
                         if (typeof fetchAndUpdateUserLimit === 'function') {
