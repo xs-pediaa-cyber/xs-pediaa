@@ -102,6 +102,7 @@ const userSchema = new mongoose.Schema({
     resetPasswordToken: String,
     resetPasswordExpires: Date,
     apikey: { type: String, required: true, unique: true },
+    customApiKey: { type: String, default: null },
     role: { type: String, default: 'Free User' }, // 'Free User', 'Premium User', 'VIP User'
     roleExpiresAt: { type: Date, default: null }, // MASA BERLAKU ROLE
     limit: { type: Number, default: 0 },
@@ -118,21 +119,22 @@ const userSchema = new mongoose.Schema({
 
 // Middleware Otomatis Update API Key saat Role Berubah jika tidak ditentukan khusus
 userSchema.pre('save', function() {
-    if (this.isModified('role')) {
+    if (this.isModified('role') || this.isModified('customApiKey')) {
         const roleLower = (this.role || '').toLowerCase();
 
-        if (roleLower.includes('vip')) {
-            if (!this.apikey) {
-                this.apikey = `${this.username.toLowerCase()}-custom-vip`;
-            }
-        } else if (roleLower.includes('premium')) {
-            if (!this.apikey || !this.apikey.includes('prem-')) {
-                this.apikey = generatePremiumApiKey(this.username);
+        if (roleLower.includes('vip') || roleLower.includes('premium')) {
+            // Jangan pernah menimpa custom API key yang sudah disimpan.
+            if (this.customApiKey) {
+                this.apikey = this.customApiKey;
+            } else if (!this.apikey || this.apikey.startsWith('xs-pedia')) {
+                this.apikey = roleLower.includes('premium')
+                    ? generatePremiumApiKey(this.username)
+                    : `${this.username.toLowerCase()}-custom-vip`;
             }
         } else {
-            if (!this.apikey || !this.apikey.startsWith('xs-pedia')) {
-                this.apikey = generateFreeApiKey();
-            }
+            // Saat role sudah habis, kembalikan ke Free dan hapus custom key.
+            this.customApiKey = null;
+            this.apikey = generateFreeApiKey();
         }
     }
 });
@@ -185,6 +187,7 @@ cron.schedule('0 * * * *', async () => {
         for (const user of expiredUsers) {
             user.role = 'Free User';
             user.roleExpiresAt = null;
+            user.customApiKey = null;
             user.apikey = generateFreeApiKey(); // Reset API Key ke Format Free
             await user.save();
             console.log(`📉 [EXPIRED] Role pengguna ${user.username} dikembalikan ke Free User.`);
@@ -312,8 +315,10 @@ app.post('/api/user/custom-apikey', checkAuthSession, async (req, res) => {
             return res.status(400).json({ status: false, message: 'API Key tersebut sudah digunakan oleh user lain! Silakan pilih nama lain.' });
         }
 
+        user.customApiKey = cleanKey;
         user.apikey = cleanKey;
         await user.save();
+        console.log(`🔑 [CUSTOM API KEY] User=${user.username} API key custom disimpan permanen: ${user.apikey}`);
 
         // Update Token JWT
         const userPayload = {
@@ -1105,20 +1110,27 @@ app.get('/transactions/:orderId', async (req, res) => {
                     targetUser.role = targetRole;
                     targetUser.roleExpiresAt = currentExpiry;
 
-                    // Premium mendapatkan key otomatis baru; VIP mempertahankan custom key jika ada.
-                    if (targetRole === 'Premium User') {
+                    // Pertahankan Custom API Key yang sudah tersimpan.
+                    // Jika customApiKey kosong tetapi apikey saat ini bukan key Free/generator,
+                    // migrasikan nilai tersebut menjadi customApiKey agar tetap permanen.
+                    const currentApiKey = String(targetUser.apikey || '');
+                    if (!targetUser.customApiKey && currentApiKey && !currentApiKey.startsWith('xs-pedia') && !currentApiKey.includes('prem-')) {
+                        targetUser.customApiKey = currentApiKey;
+                    }
+
+                    if (targetUser.customApiKey) {
+                        targetUser.apikey = targetUser.customApiKey;
+                    } else if (targetRole === 'Premium User') {
                         targetUser.apikey = generatePremiumApiKey(targetUser.username);
                     } else if (targetRole === 'VIP User') {
-                        if (!targetUser.apikey || targetUser.apikey.startsWith('xs-pedia')) {
-                            targetUser.apikey = `${targetUser.username.toLowerCase()}-custom-vip`;
-                        }
+                        targetUser.apikey = `${targetUser.username.toLowerCase()}-custom-vip`;
                     }
 
                     // Update langsung ke collection users agar benar-benar tersimpan di DB
                     // yang dipakai aplikasi, bukan hanya mengandalkan object Mongoose lokal.
                     const updateResult = await User.updateOne(
                         { _id: targetUser._id },
-                        { $set: { role: targetRole, roleExpiresAt: currentExpiry, apikey: targetUser.apikey } }
+                        { $set: { role: targetRole, roleExpiresAt: currentExpiry, apikey: targetUser.apikey, customApiKey: targetUser.customApiKey || null } }
                     );
                     if (!updateResult.matchedCount) {
                         throw new Error(`Gagal menemukan document users untuk _id=${targetUser._id}`);
@@ -2289,6 +2301,8 @@ app.get('/api/user-status', async (req, res) => {
                     avatar: activeUser.avatar,
                     apikey: activeUser.apikey,
                     role: activeUser.role,
+                    roleExpiresAt: activeUser.roleExpiresAt || null,
+                    customApiKey: activeUser.customApiKey || null,
                     phoneNumber: activeUser.phoneNumber || null,
                     phoneVerified: Boolean(activeUser.phoneVerified)
                 }
@@ -2303,6 +2317,8 @@ app.get('/api/user-status', async (req, res) => {
                     avatar: req.user.avatar,
                     apikey: req.user.apikey,
                     role: req.user.role,
+                    roleExpiresAt: req.user.roleExpiresAt || null,
+                    customApiKey: req.user.customApiKey || null,
                     phoneNumber: req.user.phoneNumber || null,
                     phoneVerified: Boolean(req.user.phoneVerified)
                 }
@@ -2313,45 +2329,9 @@ app.get('/api/user-status', async (req, res) => {
     }
 });
 
-// ==================== PROFILE ACCOUNT SETTINGS ====================
+// Profile username/email/phone editing intentionally disabled; registration data is read-only.
 app.post('/api/profile/update', checkAuthSession, async (req, res) => {
-    try {
-        if (!req.user) return res.status(401).json({ status: false, message: 'Anda harus login terlebih dahulu!' });
-        const user = await User.findById(req.user.id || req.user._id);
-        if (!user) return res.status(404).json({ status: false, message: 'User tidak ditemukan!' });
-
-        const username = typeof req.body.username === 'string' ? req.body.username.trim() : user.username;
-        const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : user.email;
-        if (username.length < 3 || username.length > 30) return res.status(400).json({ status: false, message: 'Username harus 3-30 karakter.' });
-        if (!/^[A-Za-z0-9_.-]+$/.test(username)) return res.status(400).json({ status: false, message: 'Username hanya boleh berisi huruf, angka, titik, strip, dan underscore.' });
-        if (!/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ status: false, message: 'Format email tidak valid.' });
-
-        const duplicate = await User.findOne({
-            $or: [{ username }, { email }],
-            _id: { $ne: user._id }
-        }).lean();
-        if (duplicate) return res.status(400).json({ status: false, message: 'Username atau email sudah digunakan user lain.' });
-
-        const usernameChanged = user.username !== username;
-        const emailChanged = user.email !== email;
-        user.username = username;
-        user.email = email;
-        if (usernameChanged && String(user.role).toLowerCase().includes('premium')) {
-            user.apikey = generatePremiumApiKey(username);
-        }
-        await user.save();
-
-        const payload = {
-            id: user._id, username: user.username, email: user.email, name: user.username,
-            avatar: user.avatar?.startsWith('data:') ? null : user.avatar, role: user.role, apikey: user.apikey
-        };
-        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
-        res.cookie('auth_session', token, { maxAge: 7 * 24 * 60 * 60 * 1000, httpOnly: true, secure: true, sameSite: 'lax' });
-        res.json({ status: true, message: 'Profil berhasil diperbarui!', user: { username: user.username, email: user.email, apikey: user.apikey, role: user.role } });
-    } catch (error) {
-        console.error('❌ Gagal update profil:', error.message);
-        res.status(500).json({ status: false, message: 'Gagal memperbarui profil.' });
-    }
+    return res.status(403).json({ status: false, message: 'Pengaturan username dan email bersifat tetap setelah pendaftaran.' });
 });
 
 app.post('/api/profile/send-phone-otp', checkAuthSession, async (req, res) => {
@@ -4090,7 +4070,7 @@ body:before{content:none !important;}
         </div>
 
         <div class="profile-title">User Profile</div>
-        <p class="profile-subtitle">Manage your account settings, daily limits, and API credentials.</p>
+        <p class="profile-subtitle">View your account information, subscription status, and API credentials.</p>
 
         <a href="/docs" class="profile-docs">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l3 3v17H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"/><path d="M14 2v5h5M8 12h8M8 16h8"/></svg>
@@ -4120,6 +4100,16 @@ body:before{content:none !important;}
           </div>
 
           <div class="profile-row">
+            <span class="profile-label">Masa Aktif</span>
+            <span id="userRoleCountdown" class="profile-value">-</span>
+          </div>
+
+          <div class="profile-row">
+            <span class="profile-label">Nomor WhatsApp</span>
+            <span id="userPhoneRow" class="profile-value truncate">-</span>
+          </div>
+
+          <div class="profile-row">
             <span class="profile-label">Username</span>
             <div class="profile-actions">
               <span id="userUsername" class="profile-value truncate">-</span>
@@ -4133,38 +4123,11 @@ body:before{content:none !important;}
             </div>
           </div>
 
-          <div class="profile-section mt-4" id="accountEditSection">
-            <div class="profile-section-title">Edit Account</div>
-            <div class="profile-key-box">
-              <input id="editUsernameInput" type="text" placeholder="Username" class="w-full bg-transparent border-b border-[#d6e5d1] px-1 py-2 text-sm outline-none mb-2">
-              <input id="editEmailInput" type="email" placeholder="Gmail / Email" class="w-full bg-transparent px-1 py-2 text-sm outline-none">
-              <button onclick="saveProfileSettings()" class="profile-copy">SIMPAN PROFIL</button>
-            </div>
-          </div>
-
-          <div class="profile-section">
-            <div class="profile-section-title">Verifikasi Nomor WhatsApp</div>
-            <div class="profile-key-box">
-              <input id="phoneNumberInput" type="tel" placeholder="Contoh: 628123456789" class="w-full bg-transparent border-b border-[#d6e5d1] px-1 py-2 text-sm outline-none mb-2">
-              <button onclick="sendPhoneOtp()" id="sendPhoneOtpBtn" class="profile-copy">KIRIM OTP 6 DIGIT</button>
-              <div id="phoneOtpBox" class="hidden mt-2">
-                <input id="phoneOtpInput" inputmode="numeric" maxlength="6" placeholder="Masukkan OTP 6 digit" class="w-full bg-transparent border-b border-[#d6e5d1] px-1 py-2 text-sm outline-none mb-2">
-                <button onclick="verifyPhoneOtp()" class="profile-copy">VERIFIKASI NOMOR</button>
-              </div>
-              <div id="phoneVerifyStatus" class="text-[11px] mt-2 font-bold text-[#607267]">Belum diverifikasi</div>
-            </div>
-          </div>
-
-          <div class="profile-row">
-            <span class="profile-label">Daily Limit</span>
-            <span class="profile-value"><span id="popupLimitUsed">0</span> / <span id="popupLimitMax">100</span></span>
-          </div>
-
           <div class="profile-section">
             <div class="profile-section-title">API Key</div>
             <div class="profile-key-box"><span id="userApiKey" class="profile-key">loading-key</span></div>
             <button onclick="copyText(document.getElementById('userApiKey').innerText, 'API Key')" class="profile-copy">SALIN API KEY</button>
-            <div id="vipCustomKeyBox" class="hidden mt-3">
+            <div id="customApiKeyBox" class="hidden mt-3">
               <div class="text-[11px] font-bold tracking-wider uppercase text-[#65806e] mb-2">Custom API Key (Premium / VIP)</div>
               <input type="text" id="customApiKeyInput" placeholder="Ketik Custom API Key..." class="w-full bg-[#fffefb] border border-[#cfe1cc] rounded-xl px-4 py-2.5 text-sm text-[#4a5c51] outline-none">
               <div class="flex gap-2 mt-2">
@@ -4732,7 +4695,7 @@ body:before{content:none !important;}
 
         function setRoleTheme(roleName) {
             const planText = document.getElementById('userPlanText');
-            const vipCustomBox = document.getElementById('vipCustomKeyBox');
+            const vipCustomBox = document.getElementById('customApiKeyBox');
             if (!planText) return;
 
             const role = (roleName || '').toLowerCase();
@@ -4771,7 +4734,7 @@ body:before{content:none !important;}
                 if (resData.status) {
                     alert(resData.message);
                     document.getElementById('userApiKey').innerText = resData.apikey;
-                    input.value = '';
+                    input.value = resData.apikey;
                 } else {
                     alert(resData.message || 'Gagal mengubah API Key.');
                 }
@@ -4869,57 +4832,32 @@ body:before{content:none !important;}
             syncProfileMirrorFields();
         });
 
-        async function saveProfileSettings() {
-            const username = document.getElementById('editUsernameInput')?.value.trim();
-            const email = document.getElementById('editEmailInput')?.value.trim();
-            if (!username || !email) return alert('Username dan email wajib diisi.');
-            try {
-                const response = await fetch('/api/profile/update', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
-                    body: JSON.stringify({ username, email })
-                });
-                const data = await response.json();
-                alert(data.message || 'Selesai');
-                if (data.status) fetchUserProfile();
-            } catch (e) { alert('Gagal menyimpan profil.'); }
+        let profileCountdownInterval = null;
+        function updateRoleCountdown(expiresAt, roleName) {
+            const el = document.getElementById('userRoleCountdown');
+            if (!el) return;
+            if (profileCountdownInterval) clearInterval(profileCountdownInterval);
+            const role = String(roleName || '').toLowerCase();
+            if (!expiresAt || (!role.includes('premium') && !role.includes('vip'))) {
+                el.textContent = '-';
+                return;
+            }
+            const expiry = new Date(expiresAt).getTime();
+            const render = () => {
+                const diff = Math.max(0, expiry - Date.now());
+                if (diff <= 0) { el.textContent = 'Kadaluarsa'; clearInterval(profileCountdownInterval); return; }
+                const totalSec = Math.floor(diff / 1000);
+                const d = Math.floor(totalSec / 86400);
+                const h = Math.floor((totalSec % 86400) / 3600);
+                const m = Math.floor((totalSec % 3600) / 60);
+                const sec = totalSec % 60;
+                el.textContent = d + 'h ' + h + 'j ' + m + 'm ' + sec + 'd';
+            };
+            render();
+            profileCountdownInterval = setInterval(render, 1000);
         }
 
-        async function sendPhoneOtp() {
-            const input = document.getElementById('phoneNumberInput');
-            const phone = input?.value.trim();
-            if (!phone) return alert('Masukkan nomor WhatsApp terlebih dahulu.');
-            const btn = document.getElementById('sendPhoneOtpBtn');
-            if (btn) btn.disabled = true;
-            try {
-                const response = await fetch('/api/profile/send-phone-otp', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
-                    body: JSON.stringify({ phoneNumber: phone })
-                });
-                const data = await response.json();
-                alert(data.message || 'OTP diproses.');
-                if (data.status) document.getElementById('phoneOtpBox')?.classList.remove('hidden');
-            } catch (e) { alert('Gagal mengirim OTP.'); }
-            finally { if (btn) btn.disabled = false; }
-        }
-
-        async function verifyPhoneOtp() {
-            const otp = document.getElementById('phoneOtpInput')?.value.trim();
-            if (!/^\d{6}$/.test(otp)) return alert('Masukkan OTP 6 digit.');
-            try {
-                const response = await fetch('/api/profile/verify-phone', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
-                    body: JSON.stringify({ otp })
-                });
-                const data = await response.json();
-                alert(data.message || 'Selesai');
-                if (data.status) {
-                    document.getElementById('phoneVerifyStatus').textContent = '✅ Nomor terverifikasi';
-                    document.getElementById('phoneOtpBox')?.classList.add('hidden');
-                }
-            } catch (e) { alert('Gagal memverifikasi nomor.'); }
-        }
-
-function fetchUserProfile() {
+        function fetchUserProfile() {
             fetch('/api/user-status')
                 .then(res => res.json())
                 .then(data => {
@@ -4935,14 +4873,11 @@ function fetchUserProfile() {
                         
                         const userKey = data.user.apikey || '';
                         document.getElementById('userApiKey').innerText = userKey || 'No Key Found';
-                        const editUsername = document.getElementById('editUsernameInput');
-                        const editEmail = document.getElementById('editEmailInput');
-                        const phoneInput = document.getElementById('phoneNumberInput');
-                        const phoneStatus = document.getElementById('phoneVerifyStatus');
-                        if (editUsername) editUsername.value = data.user.username || '';
-                        if (editEmail) editEmail.value = data.user.email || '';
-                        if (phoneInput) phoneInput.value = data.user.phoneNumber || '';
-                        if (phoneStatus) phoneStatus.textContent = data.user.phoneVerified ? '✅ Nomor terverifikasi' : 'Belum diverifikasi';
+                        const phoneRow = document.getElementById('userPhoneRow');
+                        if (phoneRow) phoneRow.innerText = data.user.phoneNumber || '-';
+                        updateRoleCountdown(data.user.roleExpiresAt, data.user.role);
+                        const customInput = document.getElementById('customApiKeyInput');
+                        if (customInput) customInput.value = data.user.customApiKey || '';
                                                 
                         setRoleTheme(data.user.role || 'Free User');
 
