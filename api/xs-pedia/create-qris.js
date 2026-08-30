@@ -8,7 +8,7 @@ const router = express.Router();
 const BASE_URL = 'https://xs-pedia-payment.vercel.app';
 
 // GANTI dengan URL background kamu
-const DEFAULT_BG_URL = 'https://website-kamu.com/background.png';
+const DEFAULT_BG_URL = 'https://files.catbox.moe/sh2bcj.png';
 
 /**
  * Download gambar dari URL menjadi Buffer
