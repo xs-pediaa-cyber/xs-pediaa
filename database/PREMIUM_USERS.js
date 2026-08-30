@@ -1,6 +1,6 @@
 const PREMIUM_USERS = [
     "supportarulzxd",
-    "Laras"
+    "RyuuXiao"
 ];
 
 module.exports = PREMIUM_USERS;
