@@ -523,30 +523,20 @@ app.delete('/api/reviews/:reviewId', checkAuthSession, async (req, res) => {
     }
 });
 
-const PAYWUZ_API_KEY = process.env.PAYWUZ_API_KEY || "pk_live_f1429e9285d76999cc3f8bb6c3df552f";
-const PAYWUZ_BASE_URL = "https://api.paywuz.id/v1";
-const PAYWUZ_HEADERS = {
-    "Authorization": `Bearer ${PAYWUZ_API_KEY}`,
-    "Content-Type": "application/json"
-};
+const XSPEDIA_APIKEY = process.env.XSPEDIA_APIKEY || "";
+const XSPEDIA_BASE_URL = "https://xs-pedia.my.id/h2h";
 
-async function axiosPaywuzWithRetry(config, maxRetries = 3, delayMs = 1500) {
-    for (let i = 0; i < maxRetries; i++) {
-        try {
-            return await axios(config);
-        } catch (error) {
-            const isRateLimited = error.response && error.response.status === 429;
-            const isLastAttempt = i === maxRetries - 1;
-
-            if (isRateLimited && !isLastAttempt) {
-                console.warn(`⚠️ Menerima 429 dari PayWuz. Retry ke-${i + 1} dalam ${delayMs}ms...`);
-                await new Promise(resolve => setTimeout(resolve, delayMs));
-                delayMs *= 1.5; 
-            } else {
-                throw error;
-            }
-        }
-    }
+async function xsPediaRequest(path, params = {}) {
+    if (!XSPEDIA_APIKEY) throw new Error("XSPEDIA_APIKEY belum diset di environment variable.");
+    const url = new URL(`${XSPEDIA_BASE_URL}${path}`);
+    Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") url.searchParams.set(key, String(value));
+    });
+    const response = await axios.get(url.toString(), {
+        headers: { "X-APIKEY": XSPEDIA_APIKEY },
+        timeout: 15000
+    });
+    return response.data;
 }
 
 const cacheSchema = new mongoose.Schema({
@@ -849,89 +839,63 @@ function verifyPaywuzSignature(rawBody, receivedSignature, apikey) {
 app.post('/transactions', async (req, res) => {
     try {
         const { orderId, amount, itemDetails, qty } = req.body;
-        const buyQty = Number(qty) || 1;
+        const buyQty = Math.max(1, Number(qty) || 1);
 
-        if (!orderId || !amount) {
-            return res.status(400).json({ 
-                status: false,
-                error: "INVALID_PAYLOAD", 
-                message: "orderId dan amount wajib diisi!" 
-            });
-        }
+        if (!orderId || !amount) return res.status(400).json({ status: false, error: "INVALID_PAYLOAD", message: "orderId dan amount wajib diisi!" });
 
         const existingTrx = await Transaction.findOne({ orderId });
-        if (existingTrx) {
-            return res.json({ status: true, data: existingTrx });
-        }
+        if (existingTrx) return res.json({ status: true, data: existingTrx });
 
         const inputAmount = Number(amount);
+        if (!Number.isFinite(inputAmount) || inputAmount <= 0) {
+            return res.status(400).json({ status: false, error: "INVALID_AMOUNT", message: "Nominal transaksi tidak valid!" });
+        }
 
-        const paywuzRes = await axiosPaywuzWithRetry({
-            method: 'post',
-            url: `${PAYWUZ_BASE_URL}/transactions`,
-            data: {
-                orderId,
-                amount: inputAmount,
-                paymentMethod: "QRIS",
-                feeByMerchant: false
-            },
-            headers: PAYWUZ_HEADERS
+        const currentUserId = req.user?.id || req.user?._id || null;
+        const currentUsername = req.user?.username || req.user?.name || null;
+        const currentEmail = req.user?.email || null;
+
+        const xsPediaJson = await xsPediaRequest('/deposit/create', {
+            nominal: inputAmount,
+            metode: 'QRIS'
         });
 
-        const transactionData = paywuzRes.data?.data || paywuzRes.data;
-        const qrisNumber = transactionData.paymentNumber || transactionData.qrString || transactionData.qrUrl;
+        if (!xsPediaJson?.success) throw new Error(xsPediaJson?.message || 'Gagal membuat QRIS XS-Pedia');
 
-        const safeNum = (val) => {
-            const num = Number(val);
-            return (!isNaN(num) && num > 0) ? num : null;
-        };
+        const qrisData = xsPediaJson.data || {};
+        const qrisNumber = qrisData.payment_number || qrisData.paymentNumber || qrisData.qr_string || qrisData.qrString || qrisData.qr_url || qrisData.qrUrl;
+        const qrisImage = qrisData.qr_image || qrisData.qrImage || null;
+        const xspediaId = qrisData.id || qrisData.transaction_id || qrisData.transactionId || null;
 
-        const feeFlatIdr = Number(transactionData.feeFlatIdr) || 290;
-        const feePercentBps = Number(transactionData.feePercentBps) || 70;
-        const calculatedFee = feeFlatIdr + Math.ceil((inputAmount * feePercentBps) / 10000);
+        if (!xspediaId) throw new Error('ID transaksi XS-Pedia tidak ditemukan.');
+        if (!qrisNumber && !qrisImage) throw new Error('Data QRIS dari XS-Pedia tidak lengkap.');
 
-        let finalAmount = safeNum(transactionData.grossAmount) || 
-                          safeNum(transactionData.totalAmount) || 
-                          safeNum(transactionData.total);
-
-        if (!finalAmount) {
-            const feeVal = safeNum(transactionData.fee) || safeNum(transactionData.feeAdmin) || calculatedFee;
-            finalAmount = inputAmount + feeVal;
-        }
-
-        let pLink = itemDetails?.link || null;
-        if (!pLink && itemDetails?.nama) {
-            const dbProduct = await Product.findOne({ 
-                nama: { $regex: new RegExp(`^${itemDetails.nama.trim()}$`, 'i') }
-            }).lean();
-            if (dbProduct) pLink = dbProduct.link;
-        }
-
+        const totalAmount = Number(qrisData.total_amount || qrisData.totalAmount || qrisData.gross_amount || inputAmount);
         const expiredAt = new Date(Date.now() + 15 * 60 * 1000);
 
         const newTransaction = new Transaction({
             orderId,
-            amount: finalAmount,
-            paymentNumber: qrisNumber,
+            amount: Number.isFinite(totalAmount) && totalAmount > 0 ? totalAmount : inputAmount,
+            paymentNumber: qrisNumber || qrisImage,
             paymentMethod: "QRIS",
-            status: (transactionData.status || "pending").toLowerCase(),
+            status: "pending",
             itemDetails: {
-                ...itemDetails,
-                qty: buyQty
+                ...(itemDetails || {}),
+                qty: buyQty,
+                buyerId: currentUserId ? String(currentUserId) : null,
+                buyerUsername: currentUsername,
+                buyerEmail: currentEmail,
+                xsPediaId: String(xspediaId),
+                qrisImage
             },
-            productLink: pLink,
-            expiredAt: expiredAt
+            productLink: itemDetails?.link || null,
+            expiredAt
         });
 
         await newTransaction.save();
-
-        return res.json({
-            status: true,
-            data: newTransaction
-        });
-
+        return res.json({ status: true, data: newTransaction });
     } catch (error) {
-        console.error("Error Create TRX:", error.response?.data || error.message);
+        console.error("Error Create XS-Pedia TRX:", error.response?.data || error.message);
         return res.status(500).json({
             status: false,
             error: "CREATE_TRANSACTION_FAILED",
@@ -947,83 +911,100 @@ app.get('/transactions/:orderId', async (req, res) => {
 
     try {
         const { orderId } = req.params;
+        const localTrx = await Transaction.findOne({ orderId });
+        if (!localTrx) return res.status(404).json({ error: "TRANSACTION_NOT_FOUND", message: "Transaksi tidak ditemukan" });
 
-        const cachedData = await getCache(`trx_${orderId}`);
-        if (cachedData) {
-            return res.json({ data: cachedData });
-        }
+        let currentStatus = String(localTrx.status || 'pending').toLowerCase();
 
-        let localTrx = await Transaction.findOne({ orderId });
-
-        if (!localTrx) {
-            return res.status(404).json({ 
-                error: "TRANSACTION_NOT_FOUND", 
-                message: "Transaksi tidak ditemukan" 
-            });
-        }
-
-        if (localTrx.status.toLowerCase() === "pending" && new Date() > new Date(localTrx.expiredAt)) {
-            localTrx.status = "cancelled";
-            localTrx.updatedAt = new Date();
-            await localTrx.save();
-            scheduleTransactionDeletion(orderId);
-
-            const resultData = {
-                orderId: localTrx.orderId,
-                status: "cancelled",
-                amount: localTrx.amount,
-                paymentNumber: localTrx.paymentNumber,
-                expiredAt: localTrx.expiredAt,
-                productLink: null
-            };
-
-            await setCache(`trx_${orderId}`, resultData);
-            return res.json({ data: resultData });
-        }
-
-        const currentStatus = localTrx.status.toLowerCase();
-        const isSuccess = ["settlement", "success", "paid", "settled"].includes(currentStatus);
-
-        if (isSuccess && !localTrx.productLink && localTrx.itemDetails?.nama) {
-            const pathProduk = path.join(__dirname, 'database', 'produk.json');
-            if (fs.existsSync(pathProduk)) {
+        if (!['cancelled', 'failed', 'success', 'paid', 'settlement', 'settled'].includes(currentStatus)) {
+            const xsPediaId = localTrx.itemDetails?.xsPediaId;
+            if (xsPediaId) {
                 try {
-                    const products = JSON.parse(fs.readFileSync(pathProduk, 'utf8'));
-                    const targetNama = localTrx.itemDetails.nama.trim().toLowerCase();
-                    const matchedProduct = products.find(p => p.nama && p.nama.trim().toLowerCase() === targetNama);
-                    if (matchedProduct && matchedProduct.link) {
-                        localTrx.productLink = matchedProduct.link;
-                        await localTrx.save();
+                    const statusJson = await xsPediaRequest('/deposit/status', { id: xsPediaId });
+                    const providerStatus = String(statusJson?.data?.status || statusJson?.status || '').toLowerCase();
+                    if (providerStatus) {
+                        if (['success', 'paid', 'settlement', 'settled'].includes(providerStatus)) currentStatus = 'success';
+                        else if (['cancel', 'cancelled', 'failed', 'expired', 'expire'].includes(providerStatus)) currentStatus = 'cancelled';
+                        else currentStatus = 'pending';
+                        localTrx.status = currentStatus;
+                        localTrx.updatedAt = new Date();
                     }
-                } catch (parseErr) {}
+                } catch (providerErr) {
+                    console.warn(`⚠️ XS-Pedia status check gagal untuk ${orderId}:`, providerErr.response?.data || providerErr.message);
+                }
             }
         }
 
-        const responseData = {
-            orderId: localTrx.orderId,
-            status: currentStatus,
-            amount: localTrx.amount,
-            paymentNumber: localTrx.paymentNumber,
-            expiredAt: localTrx.expiredAt,
-            productLink: isSuccess ? localTrx.productLink : null
-        };
-
-        await setCache(`trx_${orderId}`, responseData);
-
-        res.json({
-            data: responseData
-        });
-
-    } catch (error) {
-        console.error("Error Status TRX:", error.message);
-        const localTrx = await Transaction.findOne({ orderId: req.params.orderId });
-        if (localTrx) {
-            return res.json({ data: localTrx });
+        if (currentStatus === 'pending' && new Date() > new Date(localTrx.expiredAt)) {
+            localTrx.status = 'cancelled';
+            localTrx.updatedAt = new Date();
+            await localTrx.save();
+            scheduleTransactionDeletion(orderId);
+            currentStatus = 'cancelled';
         }
-        res.status(500).json({ 
-            error: "TRANSACTION_FETCH_FAILED", 
-            message: "Gagal mengambil status transaksi" 
+
+        const isSuccess = ['settlement', 'success', 'paid', 'settled'].includes(currentStatus);
+
+        if (isSuccess && !localTrx.itemDetails?.upgradeProcessed) {
+            const itemName = localTrx.itemDetails?.nama || '';
+            if (itemName.includes('Upgrade Role')) {
+                try {
+                    const daysToAdd = Math.max(1, Number(localTrx.itemDetails?.qty) || 1);
+                    const isVip = itemName.toLowerCase().includes('vip');
+                    const targetRole = isVip ? 'VIP User' : 'Premium User';
+                    let targetUser = null;
+
+                    const buyerId = localTrx.itemDetails?.buyerId;
+                    const buyerEmail = localTrx.itemDetails?.buyerEmail;
+                    const buyerUsername = localTrx.itemDetails?.buyerUsername;
+
+                    if (buyerId && mongoose.Types.ObjectId.isValid(buyerId)) targetUser = await User.findById(buyerId);
+                    if (!targetUser && buyerEmail) targetUser = await User.findOne({ email: buyerEmail.toLowerCase() });
+                    if (!targetUser && buyerUsername) targetUser = await User.findOne({ username: buyerUsername.toLowerCase() });
+
+                    if (targetUser) {
+                        let currentExpiry = (targetUser.roleExpiresAt && new Date(targetUser.roleExpiresAt) > new Date())
+                            ? new Date(targetUser.roleExpiresAt) : new Date();
+                        currentExpiry.setDate(currentExpiry.getDate() + daysToAdd);
+                        targetUser.role = targetRole;
+                        targetUser.roleExpiresAt = currentExpiry;
+                        if (targetRole === 'Premium User') {
+                            targetUser.apikey = generatePremiumApiKey(targetUser.username);
+                        } else if (targetRole === 'VIP User' && (!targetUser.apikey || targetUser.apikey.startsWith('xs-pedia'))) {
+                            targetUser.apikey = `${targetUser.username.toLowerCase()}-custom-vip`;
+                        }
+                        await targetUser.save();
+                        localTrx.itemDetails.upgradeProcessed = true;
+                        localTrx.updatedAt = new Date();
+                        console.log(`🎉 [XS-PEDIA UPGRADE] ${targetUser.username} => ${targetRole} sampai ${currentExpiry.toISOString()}`);
+                    } else {
+                        console.warn(`⚠️ [XS-PEDIA UPGRADE] User tidak ditemukan untuk transaksi ${orderId}`);
+                    }
+                } catch (upgradeErr) {
+                    console.error('❌ Gagal memproses upgrade role:', upgradeErr.message);
+                }
+            }
+        }
+
+        await localTrx.save();
+        if (isSuccess || ['failed', 'cancelled'].includes(currentStatus)) scheduleTransactionDeletion(orderId);
+
+        return res.json({
+            data: {
+                orderId: localTrx.orderId,
+                status: currentStatus,
+                amount: localTrx.amount,
+                paymentNumber: localTrx.paymentNumber,
+                expiredAt: localTrx.expiredAt,
+                qrisImage: localTrx.itemDetails?.qrisImage || null,
+                productLink: isSuccess ? localTrx.productLink : null
+            }
         });
+    } catch (error) {
+        console.error("Error Status XS-Pedia TRX:", error.message);
+        const localTrx = await Transaction.findOne({ orderId: req.params.orderId });
+        if (localTrx) return res.json({ data: { orderId: localTrx.orderId, status: localTrx.status, amount: localTrx.amount, paymentNumber: localTrx.paymentNumber, expiredAt: localTrx.expiredAt, qrisImage: localTrx.itemDetails?.qrisImage || null, productLink: null } });
+        return res.status(500).json({ error: "TRANSACTION_FETCH_FAILED", message: "Gagal mengambil status transaksi" });
     }
 });
 
@@ -1031,189 +1012,24 @@ app.post('/transactions/:orderId/cancel', async (req, res) => {
     try {
         const { orderId } = req.params;
         const localTrx = await Transaction.findOne({ orderId });
-
-        if (!localTrx) {
-            return res.status(404).json({ status: false, message: "Transaksi tidak ditemukan" });
-        }
-
-        const prevStatus = localTrx.status.toLowerCase();
-
-        try {
-            await axiosPaywuzWithRetry({
-                method: 'post',
-                url: `${PAYWUZ_BASE_URL}/transactions/${orderId}/cancel`,
-                headers: PAYWUZ_HEADERS
-            });
-        } catch (err) {
-            console.warn(`Paywuz cancel notice for ${orderId}:`, err.message);
-        }
-
-        if (["paid", "settlement", "success"].includes(prevStatus)) {
-            if (localTrx.itemDetails && localTrx.itemDetails.nama) {
-                const qtyPurchased = localTrx.itemDetails.qty || 1;
-                await updateProductStockAndSold(localTrx.itemDetails.nama, qtyPurchased, true);
-            }
-        }
-
-        localTrx.status = "cancelled";
+        if (!localTrx) return res.status(404).json({ status: false, message: "Transaksi tidak ditemukan" });
+        localTrx.status = 'cancelled';
         localTrx.updatedAt = new Date();
         await localTrx.save();
-
         await deleteCache(`trx_${orderId}`);
         scheduleTransactionDeletion(orderId);
-
-        return res.json({
-            status: true,
-            data: { orderId, status: "cancelled" }
-        });
-
+        return res.json({ status: true, data: { orderId, status: 'cancelled' } });
     } catch (error) {
         console.error("Error Cancel TRX:", error.message);
-        res.status(500).json({
-            error: "CANCEL_TRANSACTION_FAILED",
-            message: error.message || "Gagal membatalkan transaksi"
-        });
+        return res.status(500).json({ error: "CANCEL_TRANSACTION_FAILED", message: error.message || "Gagal membatalkan transaksi" });
     }
 });
 
 app.post('/webhook', async (req, res) => {
-    try {
-        const signature = req.headers['x-paywuz-signature'];
-        const payloadToVerify = req.rawBody || req.body;
-
-        const isValid = verifyPaywuzSignature(payloadToVerify, signature, PAYWUZ_API_KEY);
-
-        if (!isValid && process.env.NODE_ENV === 'production') {
-            return res.status(401).json({ 
-                error: "INVALID_SIGNATURE", 
-                message: "Signature webhook tidak valid!" 
-            });
-        }
-
-        const payload = req.body;
-        const eventName = payload?.event || payload?.type; 
-        const payloadData = payload?.data || payload;
-        const orderId = payloadData?.orderId;
-        const status = payloadData?.status ? payloadData.status.toLowerCase() : null;
-
-        if (!orderId) {
-            return res.status(400).json({ error: "MISSING_ORDER_ID", message: "orderId tidak ada!" });
-        }
-
-        if (orderId && status) {
-            let localTrx = await Transaction.findOne({ orderId });
-
-            if (localTrx) {
-                const prevStatus = localTrx.status.toLowerCase();
-                localTrx.status = status;
-                localTrx.updatedAt = new Date();
-
-                const isPaidEvent = eventName === "transaction.paid" || ["paid", "settlement", "success"].includes(status);
-                const isCancelEvent = ["cancelled", "failed", "expire"].includes(status);
-
-                if (isPaidEvent && !["paid", "settlement", "success"].includes(prevStatus)) {
-                    console.log(`⚡ [TRANSACTION.PAID] Order ID ${orderId} Lunas!`);
-
-                    // 1. LOGIKA UNTUK PEMBELIAN PRODUK STORE
-                    if (localTrx.itemDetails && localTrx.itemDetails.nama) {
-                        const qtyPurchased = localTrx.itemDetails.qty || 1;
-
-                        // Jika transaksi BUKAN upgrade role API Key, update stok toko biasa
-                        if (!localTrx.itemDetails.nama.includes("Upgrade Role")) {
-                            await updateProductStockAndSold(localTrx.itemDetails.nama, qtyPurchased, false);
-
-                            const buyerIdentifier = getUserIdentifier(req) || localTrx.paymentNumber;
-                            await recordProductBuyer(localTrx.itemDetails.nama, buyerIdentifier);
-                        }
-                    }
-
-                    // 2. LOGIKA OTOMATISASI UPGRADE ROLE & API KEY USER
-                    if (localTrx.itemDetails && localTrx.itemDetails.nama && localTrx.itemDetails.nama.includes("Upgrade Role")) {
-                        try {
-                            // Identifikasi user dari email/username/IP
-                            const buyerIdentifier = getUserIdentifier(req);
-                            const daysToAdd = Number(localTrx.itemDetails.qty) || 3;
-                            const isVip = localTrx.itemDetails.nama.toLowerCase().includes("vip");
-                            const targetRole = isVip ? "VIP User" : "Premium User";
-
-                            let targetUser = null;
-
-                            // Cari user berdasarkan email, username, atau ID
-                            if (buyerIdentifier) {
-                                targetUser = await User.findOne({
-                                    $or: [
-                                        { email: buyerIdentifier.toLowerCase() },
-                                        { username: buyerIdentifier.toLowerCase() }
-                                    ]
-                                });
-                            }
-
-                            // Fallback: Jika tidak ditemukan via req, cari via session/IP jika ada
-                            if (!targetUser && req.user) {
-                                targetUser = await User.findById(req.user.id || req.user._id);
-                            }
-
-                            if (targetUser) {
-                                // Hitung tanggal ekspirasi baru (akumulasi jika masa aktif masih berjalan)
-                                let currentExpiry = (targetUser.roleExpiresAt && new Date(targetUser.roleExpiresAt) > new Date())
-                                    ? new Date(targetUser.roleExpiresAt)
-                                    : new Date();
-
-                                currentExpiry.setDate(currentExpiry.getDate() + daysToAdd);
-
-                                targetUser.role = targetRole;
-                                targetUser.roleExpiresAt = currentExpiry;
-
-                                // Generate Apikey otomatis jika belum berkesesuaian
-                                if (targetRole === "Premium User") {
-                                    targetUser.apikey = generatePremiumApiKey(targetUser.username);
-                                } else if (targetRole === "VIP User") {
-                                    if (!targetUser.apikey || targetUser.apikey.startsWith('xs-pedia')) {
-                                        targetUser.apikey = `${targetUser.username.toLowerCase()}-custom-vip`;
-                                    }
-                                }
-
-                                await targetUser.save();
-                                console.log(`🎉 [UPGRADE SUCCESS] User ${targetUser.username} berhasil di-upgrade ke ${targetRole} hingga ${currentExpiry.toISOString()}`);
-                            } else {
-                                console.warn(`⚠️ [UPGRADE WARNING] Tidak dapat menemukan akun user untuk transaksi ${orderId}`);
-                            }
-                        } catch (upgradeErr) {
-                            console.error("❌ Gagal memproses upgrade role user di webhook:", upgradeErr.message);
-                        }
-                    }
-
-                    // Auto-fill link produk jika belum terisi
-                    if (!localTrx.productLink && localTrx.itemDetails?.nama) {
-                        const dbProduct = await Product.findOne({ 
-                            nama: { $regex: new RegExp(`^${localTrx.itemDetails.nama.trim()}$`, 'i') } 
-                        }).lean();
-                        if (dbProduct) localTrx.productLink = dbProduct.link;
-                    }
-                } 
-                else if (isCancelEvent && ["paid", "settlement", "success"].includes(prevStatus)) {
-                    // Rollback stok jika transaksi toko biasa dibatalkan setelah lunas
-                    if (localTrx.itemDetails && localTrx.itemDetails.nama && !localTrx.itemDetails.nama.includes("Upgrade Role")) {
-                        const qtyPurchased = localTrx.itemDetails.qty || 1;
-                        await updateProductStockAndSold(localTrx.itemDetails.nama, qtyPurchased, true);
-                    }
-                }
-
-                await localTrx.save();
-                await deleteCache(`trx_${orderId}`);
-
-                if (["settlement", "success", "paid", "settled", "failed", "cancelled"].includes(status)) {
-                    scheduleTransactionDeletion(orderId);
-                }
-            }
-        }
-
-        return res.status(200).json({ data: { message: "Webhook diproses dengan sukses", orderId } });
-
-    } catch (err) {
-        console.error("Webhook Error:", err);
-        return res.status(500).json({ error: "WEBHOOK_PROCESSING_ERROR", message: "Error internal webhook" });
-    }
+    return res.status(410).json({
+        status: false,
+        message: "Webhook PayWuz tidak digunakan. Status pembayaran dipantau langsung melalui XS-Pedia."
+    });
 });
 
 app.post('/api/store/manual-order', async (req, res) => {
