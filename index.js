@@ -4263,14 +4263,16 @@ body:before{content:none !important;}
 /* Endpoint TITLE only — does not affect category names, badges, URL, request, response, or buttons. */
 #apiList .xs-endpoint-title-fix,
 #apiList .xs-endpoint-title-fix * {
-  font-family: "Arial Black", "Helvetica Neue", Arial, sans-serif !important;
-  font-size: 1.08rem !important;
-  font-weight: 900 !important;
+  font-family: "Arial", "Helvetica Neue", sans-serif !important;
+  font-size: 1rem !important;
+  font-weight: 500 !important;
   font-style: normal !important;
-  letter-spacing: -0.01em !important;
+  letter-spacing: 0 !important;
   color: #111111 !important;
   -webkit-text-fill-color: #111111 !important;
-  text-shadow: 0.8px 0 #111111, -0.8px 0 #111111, 0 0.8px #111111, 0 -0.8px #111111 !important;
+  -webkit-text-stroke: 1px #111111 !important;
+  paint-order: stroke fill !important;
+  text-shadow: none !important;
   opacity: 1 !important;
 }
 </style>

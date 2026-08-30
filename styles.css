@@ -581,71 +581,24 @@ body:before{content:none !important;}
 #bioDropdown{background:#fff !important;color:#0f172a !important;border-left-color:var(--line) !important;}
 @media(max-width:640px){#apiList .xs-v6-category-header{padding-left:82px !important;}#apiList .xs-v6-category-icon{left:16px !important;width:50px !important;height:50px !important;min-width:50px !important;border-radius:14px !important;}}
 
-/* FINAL ENDPOINT TITLE STROKE — scoped only to endpoint title-like elements */
-#apiList h3.endpoint-name,
-#apiList h3.endpoint-title,
-#apiList .endpoint-name,
-#apiList .endpoint-title,
-#apiList [data-endpoint-name]{
-  color:#0b0f19 !important;
-  -webkit-text-fill-color:#0b0f19 !important;
-  -webkit-text-stroke:1.2px #0b0f19 !important;
-  text-shadow:1px 1px 0 rgba(0,0,0,.12) !important;
-  font-weight:900 !important;
-  opacity:1 !important;
-}
-
-/* V9: HARD endpoint title typography — black, extra-bold, comic outline. */
-#apiList h1:not(.xs-v6-category-header),
-#apiList h2:not(.xs-v6-category-header),
-#apiList h3:not(.xs-v6-category-header),
-#apiList h4:not(.xs-v6-category-header),
-#apiList h5:not(.xs-v6-category-header),
-#apiList h6:not(.xs-v6-category-header),
-#apiList [data-endpoint-name],
-#apiList .endpoint-name,
-#apiList .endpoint-title,
-#apiList .api-name,
-#apiList .api-title {
-  color: #0b0f19 !important;
-  -webkit-text-fill-color: #0b0f19 !important;
-  -webkit-text-stroke: 1.5px #0b0f19 !important;
-  paint-order: stroke fill !important;
-  font-family: Impact, "Arial Black", "Trebuchet MS", Arial, sans-serif !important;
-  font-size: 1.08rem !important;
-  font-weight: 900 !important;
-  font-style: normal !important;
-  letter-spacing: .012em !important;
-  line-height: 1.15 !important;
-  text-shadow: 1px 1px 0 rgba(255,255,255,.9), 2px 2px 0 rgba(15,23,42,.10) !important;
-  opacity: 1 !important;
-}
-
-/* Dynamic endpoint renderer fallback: only short heading-like text, never buttons/code. */
-#apiList > div > div h1,
-#apiList > div > div h2,
-#apiList > div > div h3,
-#apiList > div > div h4,
-#apiList > div > div h5,
-#apiList > div > div h6 {
-  color: #0b0f19 !important;
-  -webkit-text-fill-color: #0b0f19 !important;
-  -webkit-text-stroke: 1.5px #0b0f19 !important;
-  font-family: Impact, "Arial Black", "Trebuchet MS", Arial, sans-serif !important;
-  font-weight: 900 !important;
-  text-shadow: 1px 1px 0 #fff, 2px 2px 0 rgba(15,23,42,.10) !important;
-}
-
-
-/* FINAL ENDPOINT TITLE WEIGHT — intentionally narrow selector. */
-#apiList .xs-endpoint-title-fix,
-#apiList .xs-endpoint-title-fix * {
-  font-family: "Arial Black", "Helvetica Neue", Arial, sans-serif !important;
-  font-size: 1.08rem !important;
-  font-weight: 900 !important;
-  line-height: 1.2 !important;
+/* Stable endpoint-title typography: normal weight + thin comic stroke. */
+#apiList .xs-endpoint-title-fix {
+  font-family: "Arial", "Helvetica Neue", sans-serif !important;
+  font-size: 1rem !important;
+  font-weight: 500 !important;
+  line-height: 1.25 !important;
+  letter-spacing: 0 !important;
   color: #111111 !important;
   -webkit-text-fill-color: #111111 !important;
-  text-shadow: 0.8px 0 #111111, -0.8px 0 #111111, 0 0.8px #111111, 0 -0.8px #111111 !important;
+  -webkit-text-stroke: 1px #111111 !important;
+  paint-order: stroke fill !important;
+  text-shadow: none !important;
   opacity: 1 !important;
+}
+#apiList .xs-endpoint-title-fix * {
+  font: inherit !important;
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
+  -webkit-text-stroke: inherit !important;
+  text-shadow: none !important;
 }
