@@ -4322,6 +4322,119 @@ body:before{content:none !important;}
 <script src="script.js"></script>
 
 <script>
+(function () {
+    'use strict';
+
+    // Sinkronisasi API Key login ke seluruh kolom API Key di API List.
+    // Bekerja untuk Free, Premium, dan VIP serta tetap mengikuti perubahan
+    // API Key setelah user melakukan custom API Key.
+    let lastSyncedApiKey = '';
+    let syncRunning = false;
+
+    function isApiKeyField(el) {
+        if (!el || !el.matches('input, textarea')) return false;
+
+        const meta = [
+            el.getAttribute('name'),
+            el.getAttribute('id'),
+            el.getAttribute('placeholder'),
+            el.getAttribute('data-param'),
+            el.getAttribute('data-name'),
+            el.getAttribute('aria-label')
+        ].filter(Boolean).join(' ').toLowerCase();
+
+        if (/api[-_ ]?key/.test(meta) || meta === 'apikey') return true;
+
+        // Fallback: cek label/teks terdekat jika UI API List tidak memberi atribut.
+        const parentText = (el.parentElement?.innerText || '').toLowerCase();
+        return /\bapi[-_ ]?key\b/.test(parentText) || /\bapikey\b/.test(parentText);
+    }
+
+    function fillApiKeyFields(apiKey) {
+        const root = document.getElementById('apiList');
+        if (!root || !apiKey) return;
+
+        root.querySelectorAll('input, textarea').forEach(el => {
+            if (!isApiKeyField(el)) return;
+            if (el.value === apiKey) return;
+
+            const nativeSetter = Object.getOwnPropertyDescriptor(
+                HTMLInputElement.prototype, 'value'
+            )?.set;
+            const textareaSetter = Object.getOwnPropertyDescriptor(
+                HTMLTextAreaElement.prototype, 'value'
+            )?.set;
+
+            try {
+                if (el instanceof HTMLTextAreaElement && textareaSetter) {
+                    textareaSetter.call(el, apiKey);
+                } else if (nativeSetter) {
+                    nativeSetter.call(el, apiKey);
+                } else {
+                    el.value = apiKey;
+                }
+            } catch (_) {
+                el.value = apiKey;
+            }
+
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+    }
+
+    async function syncLoggedInApiKey(force = false) {
+        if (syncRunning) return;
+        syncRunning = true;
+
+        try {
+            const response = await fetch('/api/user-status', {
+                credentials: 'same-origin',
+                cache: 'no-store'
+            });
+            const data = await response.json();
+            const apiKey = data?.loggedIn && data?.user?.apikey ? String(data.user.apikey) : '';
+
+            if (apiKey && (force || apiKey !== lastSyncedApiKey)) {
+                lastSyncedApiKey = apiKey;
+                fillApiKeyFields(apiKey);
+            }
+        } catch (_) {}
+        finally {
+            syncRunning = false;
+        }
+    }
+
+    function bootApiKeySync() {
+        syncLoggedInApiKey(true);
+
+        const root = document.getElementById('apiList');
+        if (root) {
+            const observer = new MutationObserver(() => {
+                if (lastSyncedApiKey) fillApiKeyFields(lastSyncedApiKey);
+                else syncLoggedInApiKey(false);
+            });
+            observer.observe(root, { childList: true, subtree: true });
+        }
+
+        document.addEventListener('focusin', (event) => {
+            if (event.target && isApiKeyField(event.target)) {
+                syncLoggedInApiKey(true);
+            }
+        });
+
+        // Periodik ringan agar API Key langsung mengikuti perubahan profile/custom key.
+        setInterval(() => syncLoggedInApiKey(false), 5000);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bootApiKeySync, { once: true });
+    } else {
+        bootApiKeySync();
+    }
+})();
+</script>
+
+<script>
         function copyText(text, label) {
             if (navigator.clipboard) {
                 navigator.clipboard.writeText(text).then(() => {
