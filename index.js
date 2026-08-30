@@ -1,3 +1,4 @@
+try { require('dotenv').config(); } catch (e) { /* dotenv optional on hosts that inject env vars */ }
 const express = require('express');
 const fileUpload = require('express-fileupload');
 const session = require('express-session');
@@ -526,6 +527,27 @@ app.delete('/api/reviews/:reviewId', checkAuthSession, async (req, res) => {
 const XSPEDIA_APIKEY = process.env.XSPEDIA_APIKEY || "";
 const XSPEDIA_BASE_URL = "https://xs-pedia.my.id/h2h";
 
+// Kode unik pembayaran: 1-500 rupiah (maksimal Rp500),
+// dicek agar tidak sama dengan transaksi aktif lainnya.
+async function generateUniquePaymentCode() {
+    const MAX_UNIQUE_CODE = 500;
+    const MIN_UNIQUE_CODE = 1;
+
+    for (let attempt = 0; attempt < 20; attempt++) {
+        const uniqueCode = Math.floor(Math.random() * (MAX_UNIQUE_CODE - MIN_UNIQUE_CODE + 1)) + MIN_UNIQUE_CODE;
+
+        const used = await Transaction.findOne({
+            "itemDetails.uniqueCode": uniqueCode,
+            status: { $nin: ["cancelled", "failed", "expired"] }
+        }).lean();
+
+        if (!used) return uniqueCode;
+    }
+
+    // Fallback tetap berada pada batas 1-500.
+    return Math.floor(Math.random() * MAX_UNIQUE_CODE) + MIN_UNIQUE_CODE;
+}
+
 async function xsPediaRequest(path, params = {}) {
     if (!XSPEDIA_APIKEY) throw new Error("XSPEDIA_APIKEY belum diset di environment variable.");
     const url = new URL(`${XSPEDIA_BASE_URL}${path}`);
@@ -855,8 +877,12 @@ app.post('/transactions', async (req, res) => {
         const currentUsername = req.user?.username || req.user?.name || null;
         const currentEmail = req.user?.email || null;
 
+        // Tambahkan kode unik 1-500 rupiah ke nominal yang dikirim ke XS-Pedia.
+        const uniqueCode = await generateUniquePaymentCode();
+        const paymentAmount = inputAmount + uniqueCode;
+
         const xsPediaJson = await xsPediaRequest('/deposit/create', {
-            nominal: inputAmount,
+            nominal: paymentAmount,
             metode: 'QRIS'
         });
 
@@ -864,14 +890,19 @@ app.post('/transactions', async (req, res) => {
 
         const qrisData = xsPediaJson.data || {};
         const qrisNumber = qrisData.payment_number || qrisData.paymentNumber || qrisData.qr_string || qrisData.qrString || qrisData.qr_url || qrisData.qrUrl;
+        // Gunakan gambar QRIS langsung dari respons XS-Pedia agar background/tampilan
+        // mengikuti gambar yang disediakan provider secara otomatis.
         const qrisImage = qrisData.qr_image || qrisData.qrImage || null;
+        const qrisBackground = qrisData.background || qrisData.qr_background || qrisData.qrBackground || null;
         const xspediaId = qrisData.id || qrisData.transaction_id || qrisData.transactionId || null;
 
         if (!xspediaId) throw new Error('ID transaksi XS-Pedia tidak ditemukan.');
         if (!qrisNumber && !qrisImage) throw new Error('Data QRIS dari XS-Pedia tidak lengkap.');
 
-        const totalAmount = Number(qrisData.total_amount || qrisData.totalAmount || qrisData.gross_amount || inputAmount);
-        const expiredAt = new Date(Date.now() + 15 * 60 * 1000);
+        const totalAmount = Number(qrisData.total_amount || qrisData.totalAmount || qrisData.gross_amount || paymentAmount);
+        const expiredAt = qrisData.expired_at || qrisData.expiredAt
+            ? new Date(qrisData.expired_at || qrisData.expiredAt)
+            : new Date(Date.now() + 15 * 60 * 1000);
 
         const newTransaction = new Transaction({
             orderId,
@@ -882,11 +913,16 @@ app.post('/transactions', async (req, res) => {
             itemDetails: {
                 ...(itemDetails || {}),
                 qty: buyQty,
+                originalAmount: inputAmount,
+                uniqueCode,
+                paymentAmount,
                 buyerId: currentUserId ? String(currentUserId) : null,
                 buyerUsername: currentUsername,
                 buyerEmail: currentEmail,
                 xsPediaId: String(xspediaId),
-                qrisImage
+                qrisImage,
+                qrisBackground,
+                xsPediaResponse: qrisData
             },
             productLink: itemDetails?.link || null,
             expiredAt
@@ -997,13 +1033,23 @@ app.get('/transactions/:orderId', async (req, res) => {
                 paymentNumber: localTrx.paymentNumber,
                 expiredAt: localTrx.expiredAt,
                 qrisImage: localTrx.itemDetails?.qrisImage || null,
+                qrisBackground: localTrx.itemDetails?.qrisBackground || null,
                 productLink: isSuccess ? localTrx.productLink : null
             }
         });
     } catch (error) {
         console.error("Error Status XS-Pedia TRX:", error.message);
         const localTrx = await Transaction.findOne({ orderId: req.params.orderId });
-        if (localTrx) return res.json({ data: { orderId: localTrx.orderId, status: localTrx.status, amount: localTrx.amount, paymentNumber: localTrx.paymentNumber, expiredAt: localTrx.expiredAt, qrisImage: localTrx.itemDetails?.qrisImage || null, productLink: null } });
+        if (localTrx) return res.json({ data: {
+            orderId: localTrx.orderId,
+            status: localTrx.status,
+            amount: localTrx.amount,
+            paymentNumber: localTrx.paymentNumber,
+            expiredAt: localTrx.expiredAt,
+            qrisImage: localTrx.itemDetails?.qrisImage || null,
+            qrisBackground: localTrx.itemDetails?.qrisBackground || null,
+            productLink: null
+        } });
         return res.status(500).json({ error: "TRANSACTION_FETCH_FAILED", message: "Gagal mengambil status transaksi" });
     }
 });
