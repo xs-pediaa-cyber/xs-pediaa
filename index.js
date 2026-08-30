@@ -1665,25 +1665,27 @@ app.post('/auth/login', (req, res, next) => {
             if (err) return next(err);
 
             try {
-                // Pastikan apikey sesuai dengan format role milik dokumen Mongo
+                // Pertahankan API Key custom yang tersimpan di MongoDB.
+                // Jangan pernah menggantinya saat logout/login ulang selama role Premium/VIP masih aktif.
                 let needSave = false;
                 const roleLower = (user.role || '').toLowerCase();
 
-                if (roleLower.includes('vip')) {
-                    if (!user.apikey) {
-                        user.apikey = `${user.username.toLowerCase()}-custom-vip`;
+                if (roleLower.includes('vip') || roleLower.includes('premium')) {
+                    if (user.customApiKey) {
+                        if (user.apikey !== user.customApiKey) {
+                            user.apikey = user.customApiKey;
+                            needSave = true;
+                        }
+                    } else if (!user.apikey || (roleLower.includes('premium') && !user.apikey.includes('prem-'))) {
+                        user.apikey = roleLower.includes('premium')
+                            ? generatePremiumApiKey(user.username)
+                            : `${user.username.toLowerCase()}-custom-vip`;
                         needSave = true;
                     }
-                } else if (roleLower.includes('premium')) {
-                    if (!user.apikey || !user.apikey.includes('prem-')) {
-                        user.apikey = generatePremiumApiKey(user.username);
-                        needSave = true;
-                    }
-                } else {
-                    if (!user.apikey || !user.apikey.startsWith('xs-pedia')) {
-                        user.apikey = generateFreeApiKey();
-                        needSave = true;
-                    }
+                } else if (!user.apikey || !user.apikey.startsWith('xs-pedia')) {
+                    user.customApiKey = null;
+                    user.apikey = generateFreeApiKey();
+                    needSave = true;
                 }
 
                 if (needSave) {
