@@ -8,8 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- QRCode Generator & SweetAlert2 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body {
@@ -380,9 +379,12 @@
                         <p class="text-[10px] text-slate-400">Dukungan GoPay, OVO, DANA, ShopeePay & All Bank</p>
                     </div>
 
-                    <div class="bg-white p-3 rounded-xl border-2 border-cyan-400 shadow-[0_0_15px_rgba(0,243,255,0.4)] flex flex-col items-center justify-center w-full max-w-[280px]">
-                        <div id="qrcodeContainer" class="w-full flex justify-center items-center overflow-hidden"></div>
+                    <div id="qrisImageBox" class="bg-white p-3 rounded-xl border-2 border-cyan-400 shadow-[0_0_15px_rgba(0,243,255,0.4)] flex flex-col items-center justify-center w-full max-w-[420px] overflow-hidden">
+                        <img id="qrisImage" src="" alt="QRIS XS-Pedia" class="w-full h-auto block rounded-lg object-contain" style="display:none;">
+                        <div id="qrisImageLoading" class="py-10 text-center text-slate-500 text-xs font-mono">Memuat QRIS dari XS-Pedia...</div>
                     </div>
+
+                    <div class="text-[10px] text-slate-400 text-center font-mono w-full px-2">QRIS ditampilkan langsung dari gambar <strong class="text-emerald-400">qr_image</strong> XS-Pedia beserta background aslinya.</div>
 
                     <div class="flex items-center gap-2 text-xs font-mono text-amber-400 bg-amber-950/40 px-3 py-1.5 rounded-lg border border-amber-800/40 animate-pulse w-full justify-center">
                         <i class="fa-solid fa-spinner fa-spin"></i> Menunggu Verifikasi Pembayaran...
@@ -499,18 +501,31 @@
             }
         }
 
-        function renderQrisCode(qrisString) {
-            const qrContainer = document.getElementById('qrcodeContainer');
-            qrContainer.innerHTML = '';
+        function renderQrisImage(qrisImage) {
+            const image = document.getElementById('qrisImage');
+            const loading = document.getElementById('qrisImageLoading');
 
-            new QRCode(qrContainer, {
-                text: qrisString,
-                width: 260,
-                height: 260,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.H
-            });
+            if (!image || !loading) return;
+
+            if (!qrisImage) {
+                image.removeAttribute('src');
+                image.style.display = 'none';
+                loading.innerHTML = '<span class="text-red-400">QRIS XS-Pedia tidak mengirim gambar QR.</span>';
+                return;
+            }
+
+            loading.textContent = 'Memuat QRIS dari XS-Pedia...';
+            loading.style.display = 'block';
+            image.style.display = 'none';
+            image.onload = () => {
+                loading.style.display = 'none';
+                image.style.display = 'block';
+            };
+            image.onerror = () => {
+                image.style.display = 'none';
+                loading.innerHTML = '<span class="text-red-400">Gagal memuat gambar QRIS dari XS-Pedia.</span>';
+            };
+            image.src = qrisImage;
         }
 
         async function processPaywuzPayment(type) {
@@ -564,7 +579,12 @@
                 document.getElementById('modalQrisOrderId').innerText = currentOrderId;
                 document.getElementById('modalQrisTargetRole').innerText = plan.roleName;
 
-                renderQrisCode(result.data.paymentNumber);
+                // Gunakan qr_image asli dari XS-Pedia. Jangan generate QR baru dari paymentNumber,
+                // agar background/desain QRIS tetap persis seperti yang diberikan provider.
+                if (!result.data.qrisImage) {
+                    throw new Error('XS-Pedia tidak mengirim qr_image. QRIS tidak dapat ditampilkan.');
+                }
+                renderQrisImage(result.data.qrisImage);
 
                 document.getElementById('qrisContainerBox').classList.remove('hidden');
                 document.getElementById('qrisSuccessBox').classList.add('hidden');
