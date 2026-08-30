@@ -235,7 +235,7 @@ app.post('/api/user/update-avatar', checkAuthSession, (req, res) => {
 });
 
 // ====================================================
-// ENDPOINT CUSTOM APIKEY KHUSUS VIP USER
+// ENDPOINT CUSTOM APIKEY KHUSUS PREMIUM & VIP USER
 // ====================================================
 app.post('/api/user/custom-apikey', checkAuthSession, async (req, res) => {
     try {
@@ -251,8 +251,8 @@ app.post('/api/user/custom-apikey', checkAuthSession, async (req, res) => {
         }
 
         const roleLower = (user.role || '').toLowerCase();
-        if (!roleLower.includes('vip')) {
-            return res.status(403).json({ status: false, message: 'Fitur Custom API Key hanya diperuntukkan untuk VIP User!' });
+        if (!roleLower.includes('vip') && !roleLower.includes('premium')) {
+            return res.status(403).json({ status: false, message: 'Fitur Custom API Key hanya diperuntukkan untuk Premium User dan VIP User!' });
         }
 
         const { customKey } = req.body;
@@ -538,6 +538,51 @@ async function xsPediaRequest(path, params = {}) {
         timeout: 15000
     });
     return response.data;
+}
+
+// XS-Pedia dapat mengirim status pada beberapa bentuk respons.
+// Prioritaskan format yang sama seperti contoh buynow: data.status === 'success',
+// lalu dukung beberapa variasi umum tanpa menganggap pesan sebagai status.
+function extractXsPediaStatus(payload) {
+    const candidates = [
+        payload?.data?.status,
+        payload?.status,
+        payload?.data?.data?.status,
+        payload?.result?.status,
+        payload?.data?.payment_status,
+        payload?.payment_status,
+        payload?.data?.transaction_status,
+        payload?.transaction_status
+    ];
+
+    for (const value of candidates) {
+        if (value !== undefined && value !== null && String(value).trim() !== '') {
+            return String(value).trim().toLowerCase();
+        }
+    }
+    return '';
+}
+
+async function syncTransactionStatusFromXsPedia(localTrx) {
+    const xsPediaId = localTrx?.itemDetails?.xsPediaId;
+    if (!xsPediaId) {
+        return { status: String(localTrx?.status || 'pending').toLowerCase(), provider: null };
+    }
+
+    // Sama seperti contoh buynow: GET /deposit/status?id=<id> dengan X-APIKEY.
+    const statusJson = await xsPediaRequest('/deposit/status', { id: xsPediaId });
+    const providerStatus = extractXsPediaStatus(statusJson);
+
+    if (['success', 'paid', 'settlement', 'settled'].includes(providerStatus)) {
+        localTrx.status = 'success';
+    } else if (['cancel', 'cancelled', 'failed', 'expired', 'expire'].includes(providerStatus)) {
+        localTrx.status = 'cancelled';
+    } else if (providerStatus) {
+        localTrx.status = 'pending';
+    }
+
+    localTrx.updatedAt = new Date();
+    return { status: String(localTrx.status || 'pending').toLowerCase(), provider: providerStatus, raw: statusJson };
 }
 
 const cacheSchema = new mongoose.Schema({
@@ -935,6 +980,74 @@ app.post('/transactions', async (req, res) => {
     }
 });
 
+app.get('/transactions/:orderId/xs-pedia-status', async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const localTrx = await Transaction.findOne({ orderId });
+        if (!localTrx) {
+            return res.status(404).json({ status: false, message: 'Transaksi tidak ditemukan' });
+        }
+
+        const providerResult = await syncTransactionStatusFromXsPedia(localTrx);
+
+        if (providerResult.status === 'success' && !localTrx.itemDetails?.upgradeProcessed) {
+            const itemName = localTrx.itemDetails?.nama || '';
+            if (itemName.includes('Upgrade Role')) {
+                const daysToAdd = Math.max(1, Number(localTrx.itemDetails?.qty) || 1);
+                const targetRole = itemName.toLowerCase().includes('vip') ? 'VIP User' : 'Premium User';
+                let targetUser = null;
+                const buyerId = localTrx.itemDetails?.buyerId;
+                const buyerEmail = localTrx.itemDetails?.buyerEmail;
+                const buyerUsername = localTrx.itemDetails?.buyerUsername;
+
+                if (buyerId && mongoose.Types.ObjectId.isValid(buyerId)) targetUser = await User.findById(buyerId);
+                if (!targetUser && buyerEmail) targetUser = await User.findOne({ email: buyerEmail.toLowerCase() });
+                if (!targetUser && buyerUsername) targetUser = await User.findOne({ username: buyerUsername.toLowerCase() });
+
+                if (targetUser) {
+                    let currentExpiry = (targetUser.roleExpiresAt && new Date(targetUser.roleExpiresAt) > new Date())
+                        ? new Date(targetUser.roleExpiresAt) : new Date();
+                    currentExpiry.setDate(currentExpiry.getDate() + daysToAdd);
+                    targetUser.role = targetRole;
+                    targetUser.roleExpiresAt = currentExpiry;
+                    if (targetRole === 'Premium User') {
+                        targetUser.apikey = generatePremiumApiKey(targetUser.username);
+                    } else if (targetRole === 'VIP User' && (!targetUser.apikey || targetUser.apikey.startsWith('xs-pedia'))) {
+                        targetUser.apikey = `${targetUser.username.toLowerCase()}-custom-vip`;
+                    }
+                    await targetUser.save();
+                    localTrx.itemDetails.upgradeProcessed = true;
+                }
+            }
+        }
+
+        await localTrx.save();
+        return res.json({
+            success: true,
+            data: {
+                orderId,
+                status: providerResult.status,
+                providerStatus: providerResult.provider || providerResult.status,
+                providerResponse: providerResult.raw || null,
+                amount: localTrx.amount,
+                paymentNumber: localTrx.paymentNumber,
+                expiredAt: localTrx.expiredAt,
+                qrisImage: localTrx.itemDetails?.qrisImage || null,
+                uniqueCode: localTrx.itemDetails?.uniqueCode || 0,
+                originalAmount: localTrx.itemDetails?.originalAmount || null,
+                paymentAmount: localTrx.itemDetails?.paymentAmount || null
+            }
+        });
+    } catch (error) {
+        console.error('Error XS-Pedia direct status:', error.response?.data || error.message);
+        return res.status(500).json({
+            success: false,
+            status: false,
+            message: error.response?.data?.message || error.message || 'Gagal mengecek status XS-Pedia'
+        });
+    }
+});
+
 app.get('/transactions/:orderId', async (req, res) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
@@ -948,21 +1061,11 @@ app.get('/transactions/:orderId', async (req, res) => {
         let currentStatus = String(localTrx.status || 'pending').toLowerCase();
 
         if (!['cancelled', 'failed', 'success', 'paid', 'settlement', 'settled'].includes(currentStatus)) {
-            const xsPediaId = localTrx.itemDetails?.xsPediaId;
-            if (xsPediaId) {
-                try {
-                    const statusJson = await xsPediaRequest('/deposit/status', { id: xsPediaId });
-                    const providerStatus = String(statusJson?.data?.status || statusJson?.status || '').toLowerCase();
-                    if (providerStatus) {
-                        if (['success', 'paid', 'settlement', 'settled'].includes(providerStatus)) currentStatus = 'success';
-                        else if (['cancel', 'cancelled', 'failed', 'expired', 'expire'].includes(providerStatus)) currentStatus = 'cancelled';
-                        else currentStatus = 'pending';
-                        localTrx.status = currentStatus;
-                        localTrx.updatedAt = new Date();
-                    }
-                } catch (providerErr) {
-                    console.warn(`⚠️ XS-Pedia status check gagal untuk ${orderId}:`, providerErr.response?.data || providerErr.message);
-                }
+            try {
+                const providerResult = await syncTransactionStatusFromXsPedia(localTrx);
+                currentStatus = providerResult.status;
+            } catch (providerErr) {
+                console.warn(`⚠️ XS-Pedia status check gagal untuk ${orderId}:`, providerErr.response?.data || providerErr.message);
             }
         }
 
@@ -3739,13 +3842,17 @@ body:before{content:none !important;}
           <div class="profile-section">
             <div class="profile-section-title">API Key</div>
             <div class="profile-key-box"><span id="userApiKey" class="profile-key">loading-key</span></div>
-            <div id="vipCustomKeyBox" class="hidden mt-3">
-              <div class="flex gap-2">
-                <input type="text" id="customApiKeyInput" placeholder="Ketik Custom API Key..." class="flex-1 bg-[#fffefb] border border-[#cfe1cc] rounded-full px-4 py-2.5 text-sm text-[#4a5c51] outline-none">
-                <button onclick="saveCustomApiKey()" class="profile-copy mt-0 !w-auto !px-4 whitespace-nowrap">SIMPAN</button>
+            <button onclick="copyText(document.getElementById('userApiKey').innerText, 'API Key')" class="profile-copy">SALIN API KEY</button>
+
+            <div id="vipCustomKeyBox" class="hidden mt-4">
+              <div class="profile-section-title">Custom API Key</div>
+              <p id="customApiKeyRoleHint" class="text-[11px] text-[#708078] mb-2">Tersedia untuk Premium dan VIP.</p>
+              <input type="text" id="customApiKeyInput" placeholder="Ketik Custom API Key..." autocomplete="off" class="w-full bg-[#fffefb] border border-[#cfe1cc] rounded-2xl px-4 py-3 text-sm text-[#4a5c51] outline-none">
+              <div class="flex gap-2 mt-2">
+                <button onclick="saveCustomApiKey()" class="profile-copy flex-1">SIMPAN</button>
+                <button onclick="cancelCustomApiKey()" class="profile-copy flex-1" style="background:#eef2ee!important;color:#496052!important;border-color:#cfe1cc!important;">BATAL</button>
               </div>
             </div>
-            <button onclick="copyText(document.getElementById('userApiKey').innerText, 'API Key')" class="profile-copy">SALIN API KEY</button>
           </div>
 
           <div class="profile-section">
@@ -4261,6 +4368,11 @@ body:before{content:none !important;}
             }
         }
 
+        function syncCustomApiKeyInput(value) {
+            const input = document.getElementById('customApiKeyInput');
+            if (input) input.value = value || '';
+        }
+
         async function saveCustomApiKey() {
             const input = document.getElementById('customApiKeyInput');
             if (!input || !input.value.trim()) {
@@ -4268,24 +4380,31 @@ body:before{content:none !important;}
                 return;
             }
 
+            const cleanValue = input.value.trim();
             try {
                 const response = await fetch('/api/user/custom-apikey', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ customKey: input.value.trim() })
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ customKey: cleanValue })
                 });
 
                 const resData = await response.json();
                 if (resData.status) {
-                    alert(resData.message);
                     document.getElementById('userApiKey').innerText = resData.apikey;
-                    input.value = '';
+                    syncCustomApiKeyInput(resData.apikey);
+                    alert(resData.message || 'API Key berhasil diperbarui!');
                 } else {
                     alert(resData.message || 'Gagal mengubah API Key.');
                 }
             } catch (err) {
                 alert('Terjadi kesalahan koneksi saat menyimpan API Key.');
             }
+        }
+
+        function cancelCustomApiKey() {
+            const currentKey = document.getElementById('userApiKey')?.innerText || '';
+            syncCustomApiKeyInput(currentKey);
         }
 
         async function uploadAvatarFile(input) {
@@ -4388,6 +4507,7 @@ function fetchUserProfile() {
                         
                         const userKey = data.user.apikey || '';
                         document.getElementById('userApiKey').innerText = userKey || 'No Key Found';
+                        syncCustomApiKeyInput(userKey);
                                                 
                         setRoleTheme(data.user.role || 'Free User');
 
