@@ -568,6 +568,7 @@
                 const res = await fetch('/transactions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
                     body: JSON.stringify({
                         orderId: currentOrderId,
                         amount: totalAmount,
@@ -665,7 +666,7 @@
                     messageEl.textContent = `Status pembayaran: ${status || 'pending'}`;
                 }
 
-                if (["settlement", "success", "paid", "settled"].includes(status)) {
+                if (["settlement", "success", "paid", "settled", "completed", "berhasil", "sukses"].includes(status)) {
                     if (pollingInterval) clearInterval(pollingInterval);
                     if (countdownInterval) clearInterval(countdownInterval);
 
