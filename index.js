@@ -23,6 +23,40 @@ const crypto = require('crypto');
 const compression = require('compression');
 const os = require('os');
 
+// ==================== FONNTE WHATSAPP NOTIFICATION ====================
+const FONNTE_TOKEN = process.env.FONNTE_TOKEN || '';
+const FONNTE_OWNER_NUMBER = process.env.FONNTE_OWNER_NUMBER || '';
+
+function normalizePhoneNumber(value) {
+    return String(value || '').replace(/[^0-9]/g, '').replace(/^0+/, '');
+}
+
+async function sendFonnteMessage(target, message) {
+    const phone = normalizePhoneNumber(target);
+    if (!FONNTE_TOKEN || !phone) {
+        console.warn('⚠️ Fonnte tidak dikonfigurasi atau nomor tujuan kosong.');
+        return { status: false, skipped: true };
+    }
+    try {
+        const response = await axios.post('https://api.fonnte.com/send', {
+            target: phone,
+            message: String(message || '')
+        }, {
+            headers: { Authorization: FONNTE_TOKEN },
+            timeout: 15000
+        });
+        console.log(`📲 [FONNTE] Notifikasi terkirim ke ${phone}`, response.data);
+        return { status: true, data: response.data };
+    } catch (error) {
+        console.error(`❌ [FONNTE] Gagal kirim ke ${phone}:`, error.response?.data || error.message);
+        return { status: false, error: error.message };
+    }
+}
+
+function issuePhoneOtp() {
+    return String(Math.floor(100000 + Math.random() * 900000));
+}
+
 const app = express();
 app.use(compression());
 app.set('etag', false);
@@ -36,7 +70,7 @@ app.use(express.json({
 app.use(cookieParser());
 app.set('trust proxy', 1);
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://db_ryuuxiao:db_ryuuxiao@cluster0.sj28lxh.mongodb.net/?appName=Cluster0'; 
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://arulz-xd-owner:Haqqi0213@cluster0.fgxhxqm.mongodb.net/?appName=Cluster0'; 
 
 mongoose.connect(MONGODB_URI)
     .then(() => console.log('📦 Berhasil terhubung ke MongoDB!'))
@@ -73,7 +107,13 @@ const userSchema = new mongoose.Schema({
     limit: { type: Number, default: 0 },
     lastLimitReset: { type: Date, default: Date.now },
     avatar: { type: String, default: 'https://arulz-xd.my.id/files/X1F0Cn.png' }, 
-    createdAt: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now },
+    phoneNumber: { type: String, default: null },
+    phoneVerified: { type: Boolean, default: false },
+    phoneVerifiedAt: { type: Date, default: null },
+    phoneOtpHash: { type: String, default: null },
+    phoneOtpExpiresAt: { type: Date, default: null },
+    phoneOtpAttempts: { type: Number, default: 0 }
 });
 
 // Middleware Otomatis Update API Key saat Role Berubah jika tidak ditentukan khusus
@@ -1122,6 +1162,10 @@ app.get('/transactions/:orderId', async (req, res) => {
                     }
 
                     console.log(`🎉 [XS-PEDIA UPGRADE] ID=${providerId} USER_ID=${verifiedUser._id} USERNAME=${verifiedUser.username} ROLE_SEBELUM=${targetRole === verifiedUser.role ? 'verified' : targetUser.role} ROLE_SESUDAH=${verifiedUser.role} EXPIRES=${currentExpiry.toISOString()}`);
+                    if (FONNTE_OWNER_NUMBER) {
+                        const upgradeNotif = `🚀 UPGRADE API KEY BERHASIL\n\n👤 Username: ${verifiedUser.username}\n📧 Email: ${verifiedUser.email}\n🆔 ID XS-Pedia: ${providerId || '-'}\n⭐ Paket: ${targetRole}\n📅 Durasi: ${daysToAdd} hari\n🔑 API Key: ${verifiedUser.apikey}\n💰 Nominal: Rp${Number(localTrx.amount || 0).toLocaleString('id-ID')}\n🕒 Waktu: ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}`;
+                        await sendFonnteMessage(FONNTE_OWNER_NUMBER, upgradeNotif);
+                    }
                 } catch (upgradeErr) {
                     // Jangan mengubah success menjadi pending. Pembayaran sudah sukses;
                     // error di sini hanya berarti sinkronisasi role belum selesai.
@@ -2124,7 +2168,9 @@ app.get('/api/user-status', async (req, res) => {
                     email: activeUser.email,
                     avatar: activeUser.avatar,
                     apikey: activeUser.apikey,
-                    role: activeUser.role
+                    role: activeUser.role,
+                    phoneNumber: activeUser.phoneNumber || null,
+                    phoneVerified: Boolean(activeUser.phoneVerified)
                 }
             });
         } catch (err) {
@@ -2136,12 +2182,123 @@ app.get('/api/user-status', async (req, res) => {
                     email: req.user.email,
                     avatar: req.user.avatar,
                     apikey: req.user.apikey,
-                    role: req.user.role
+                    role: req.user.role,
+                    phoneNumber: req.user.phoneNumber || null,
+                    phoneVerified: Boolean(req.user.phoneVerified)
                 }
             });
         }
     } else {
         res.json({ loggedIn: false });
+    }
+});
+
+// ==================== PROFILE ACCOUNT SETTINGS ====================
+app.post('/api/profile/update', checkAuthSession, async (req, res) => {
+    try {
+        if (!req.user) return res.status(401).json({ status: false, message: 'Anda harus login terlebih dahulu!' });
+        const user = await User.findById(req.user.id || req.user._id);
+        if (!user) return res.status(404).json({ status: false, message: 'User tidak ditemukan!' });
+
+        const username = typeof req.body.username === 'string' ? req.body.username.trim() : user.username;
+        const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : user.email;
+        if (username.length < 3 || username.length > 30) return res.status(400).json({ status: false, message: 'Username harus 3-30 karakter.' });
+        if (!/^[A-Za-z0-9_.-]+$/.test(username)) return res.status(400).json({ status: false, message: 'Username hanya boleh berisi huruf, angka, titik, strip, dan underscore.' });
+        if (!/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ status: false, message: 'Format email tidak valid.' });
+
+        const duplicate = await User.findOne({
+            $or: [{ username }, { email }],
+            _id: { $ne: user._id }
+        }).lean();
+        if (duplicate) return res.status(400).json({ status: false, message: 'Username atau email sudah digunakan user lain.' });
+
+        const usernameChanged = user.username !== username;
+        const emailChanged = user.email !== email;
+        user.username = username;
+        user.email = email;
+        if (usernameChanged && String(user.role).toLowerCase().includes('premium')) {
+            user.apikey = generatePremiumApiKey(username);
+        }
+        await user.save();
+
+        const payload = {
+            id: user._id, username: user.username, email: user.email, name: user.username,
+            avatar: user.avatar?.startsWith('data:') ? null : user.avatar, role: user.role, apikey: user.apikey
+        };
+        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+        res.cookie('auth_session', token, { maxAge: 7 * 24 * 60 * 60 * 1000, httpOnly: true, secure: true, sameSite: 'lax' });
+        res.json({ status: true, message: 'Profil berhasil diperbarui!', user: { username: user.username, email: user.email, apikey: user.apikey, role: user.role } });
+    } catch (error) {
+        console.error('❌ Gagal update profil:', error.message);
+        res.status(500).json({ status: false, message: 'Gagal memperbarui profil.' });
+    }
+});
+
+app.post('/api/profile/send-phone-otp', checkAuthSession, async (req, res) => {
+    try {
+        if (!req.user) return res.status(401).json({ status: false, message: 'Anda harus login terlebih dahulu!' });
+        const phone = normalizePhoneNumber(req.body.phoneNumber);
+        if (phone.length < 10 || phone.length > 15) return res.status(400).json({ status: false, message: 'Nomor WhatsApp tidak valid.' });
+        if (!FONNTE_TOKEN) return res.status(500).json({ status: false, message: 'FONNTE_TOKEN belum dikonfigurasi di environment.' });
+        if (!FONNTE_OWNER_NUMBER) console.warn('⚠️ FONNTE_OWNER_NUMBER belum dikonfigurasi; notifikasi owner tidak akan terkirim.');
+
+        const user = await User.findById(req.user.id || req.user._id);
+        if (!user) return res.status(404).json({ status: false, message: 'User tidak ditemukan!' });
+
+        const otp = issuePhoneOtp();
+        user.phoneNumber = phone;
+        user.phoneVerified = false;
+        user.phoneVerifiedAt = null;
+        user.phoneOtpHash = crypto.createHash('sha256').update(otp).digest('hex');
+        user.phoneOtpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
+        user.phoneOtpAttempts = 0;
+        await user.save();
+
+        const result = await sendFonnteMessage(phone, `Kode verifikasi nomor Anda: ${otp}\nBerlaku 5 menit. Jangan berikan kode ini kepada siapa pun.`);
+        if (!result.status) return res.status(502).json({ status: false, message: 'Gagal mengirim OTP ke WhatsApp.' });
+
+        console.log(`📞 [PHONE OTP] User=${user.username} PHONE=${phone} OTP terkirim.`);
+        res.json({ status: true, message: 'OTP 6 digit berhasil dikirim ke WhatsApp Anda.' });
+    } catch (error) {
+        console.error('❌ Gagal kirim OTP nomor:', error.message);
+        res.status(500).json({ status: false, message: 'Gagal mengirim OTP.' });
+    }
+});
+
+app.post('/api/profile/verify-phone', checkAuthSession, async (req, res) => {
+    try {
+        if (!req.user) return res.status(401).json({ status: false, message: 'Anda harus login terlebih dahulu!' });
+        const otp = String(req.body.otp || '').trim();
+        if (!/^\d{6}$/.test(otp)) return res.status(400).json({ status: false, message: 'OTP harus 6 digit.' });
+
+        const user = await User.findById(req.user.id || req.user._id);
+        if (!user) return res.status(404).json({ status: false, message: 'User tidak ditemukan!' });
+        if (!user.phoneNumber) return res.status(400).json({ status: false, message: 'Belum ada nomor yang meminta verifikasi.' });
+        if (!user.phoneOtpHash || !user.phoneOtpExpiresAt || new Date() > new Date(user.phoneOtpExpiresAt)) {
+            return res.status(400).json({ status: false, message: 'OTP sudah kedaluwarsa. Minta OTP baru.' });
+        }
+
+        user.phoneOtpAttempts = Number(user.phoneOtpAttempts || 0) + 1;
+        const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+        if (otpHash !== user.phoneOtpHash) {
+            await user.save();
+            return res.status(400).json({ status: false, message: 'OTP salah.' });
+        }
+
+        user.phoneVerified = true;
+        user.phoneVerifiedAt = new Date();
+        user.phoneOtpHash = null;
+        user.phoneOtpExpiresAt = null;
+        user.phoneOtpAttempts = 0;
+        await user.save();
+
+        const ownerMessage = `📱 VERIFIKASI NOMOR BERHASIL\n\n👤 Username: ${user.username}\n📧 Email: ${user.email}\n📞 Nomor: ${user.phoneNumber}\n🕒 Waktu: ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}`;
+        if (FONNTE_OWNER_NUMBER) await sendFonnteMessage(FONNTE_OWNER_NUMBER, ownerMessage);
+
+        res.json({ status: true, message: 'Nomor WhatsApp berhasil diverifikasi!', phoneNumber: user.phoneNumber, phoneVerified: true });
+    } catch (error) {
+        console.error('❌ Gagal verifikasi nomor:', error.message);
+        res.status(500).json({ status: false, message: 'Gagal memverifikasi nomor.' });
     }
 });
 
@@ -3856,6 +4013,28 @@ body:before{content:none !important;}
             </div>
           </div>
 
+          <div class="profile-section mt-4" id="accountEditSection">
+            <div class="profile-section-title">Edit Account</div>
+            <div class="profile-key-box">
+              <input id="editUsernameInput" type="text" placeholder="Username" class="w-full bg-transparent border-b border-[#d6e5d1] px-1 py-2 text-sm outline-none mb-2">
+              <input id="editEmailInput" type="email" placeholder="Gmail / Email" class="w-full bg-transparent px-1 py-2 text-sm outline-none">
+              <button onclick="saveProfileSettings()" class="profile-copy">SIMPAN PROFIL</button>
+            </div>
+          </div>
+
+          <div class="profile-section">
+            <div class="profile-section-title">Verifikasi Nomor WhatsApp</div>
+            <div class="profile-key-box">
+              <input id="phoneNumberInput" type="tel" placeholder="Contoh: 628123456789" class="w-full bg-transparent border-b border-[#d6e5d1] px-1 py-2 text-sm outline-none mb-2">
+              <button onclick="sendPhoneOtp()" id="sendPhoneOtpBtn" class="profile-copy">KIRIM OTP 6 DIGIT</button>
+              <div id="phoneOtpBox" class="hidden mt-2">
+                <input id="phoneOtpInput" inputmode="numeric" maxlength="6" placeholder="Masukkan OTP 6 digit" class="w-full bg-transparent border-b border-[#d6e5d1] px-1 py-2 text-sm outline-none mb-2">
+                <button onclick="verifyPhoneOtp()" class="profile-copy">VERIFIKASI NOMOR</button>
+              </div>
+              <div id="phoneVerifyStatus" class="text-[11px] mt-2 font-bold text-[#607267]">Belum diverifikasi</div>
+            </div>
+          </div>
+
           <div class="profile-row">
             <span class="profile-label">Daily Limit</span>
             <span class="profile-value"><span id="popupLimitUsed">0</span> / <span id="popupLimitMax">100</span></span>
@@ -4618,6 +4797,56 @@ body:before{content:none !important;}
             syncProfileMirrorFields();
         });
 
+        async function saveProfileSettings() {
+            const username = document.getElementById('editUsernameInput')?.value.trim();
+            const email = document.getElementById('editEmailInput')?.value.trim();
+            if (!username || !email) return alert('Username dan email wajib diisi.');
+            try {
+                const response = await fetch('/api/profile/update', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+                    body: JSON.stringify({ username, email })
+                });
+                const data = await response.json();
+                alert(data.message || 'Selesai');
+                if (data.status) fetchUserProfile();
+            } catch (e) { alert('Gagal menyimpan profil.'); }
+        }
+
+        async function sendPhoneOtp() {
+            const input = document.getElementById('phoneNumberInput');
+            const phone = input?.value.trim();
+            if (!phone) return alert('Masukkan nomor WhatsApp terlebih dahulu.');
+            const btn = document.getElementById('sendPhoneOtpBtn');
+            if (btn) btn.disabled = true;
+            try {
+                const response = await fetch('/api/profile/send-phone-otp', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+                    body: JSON.stringify({ phoneNumber: phone })
+                });
+                const data = await response.json();
+                alert(data.message || 'OTP diproses.');
+                if (data.status) document.getElementById('phoneOtpBox')?.classList.remove('hidden');
+            } catch (e) { alert('Gagal mengirim OTP.'); }
+            finally { if (btn) btn.disabled = false; }
+        }
+
+        async function verifyPhoneOtp() {
+            const otp = document.getElementById('phoneOtpInput')?.value.trim();
+            if (!/^\d{6}$/.test(otp)) return alert('Masukkan OTP 6 digit.');
+            try {
+                const response = await fetch('/api/profile/verify-phone', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+                    body: JSON.stringify({ otp })
+                });
+                const data = await response.json();
+                alert(data.message || 'Selesai');
+                if (data.status) {
+                    document.getElementById('phoneVerifyStatus').textContent = '✅ Nomor terverifikasi';
+                    document.getElementById('phoneOtpBox')?.classList.add('hidden');
+                }
+            } catch (e) { alert('Gagal memverifikasi nomor.'); }
+        }
+
 function fetchUserProfile() {
             fetch('/api/user-status')
                 .then(res => res.json())
@@ -4634,6 +4863,14 @@ function fetchUserProfile() {
                         
                         const userKey = data.user.apikey || '';
                         document.getElementById('userApiKey').innerText = userKey || 'No Key Found';
+                        const editUsername = document.getElementById('editUsernameInput');
+                        const editEmail = document.getElementById('editEmailInput');
+                        const phoneInput = document.getElementById('phoneNumberInput');
+                        const phoneStatus = document.getElementById('phoneVerifyStatus');
+                        if (editUsername) editUsername.value = data.user.username || '';
+                        if (editEmail) editEmail.value = data.user.email || '';
+                        if (phoneInput) phoneInput.value = data.user.phoneNumber || '';
+                        if (phoneStatus) phoneStatus.textContent = data.user.phoneVerified ? '✅ Nomor terverifikasi' : 'Belum diverifikasi';
                                                 
                         setRoleTheme(data.user.role || 'Free User');
 
