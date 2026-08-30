@@ -1321,7 +1321,241 @@ function sendSweetAlert(res, icon, title, text, redirectUrl) {
                     padding: 10px 24px !important;
                 }
             </style>
-        </head>
+        <style id="xs-v6-stable-light">
+
+/* ================================================================
+   XS-PEDIA DOCUMENTS — STABLE LIGHT THEME
+   Scoped, non-destructive overrides. No global recoloring of
+   endpoint internals, no broad badge selectors, no theme switch.
+   ================================================================ */
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #64748b;
+  --border-color: #dbe4ea;
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-track: #f8fafc;
+  --card-bg: #ffffff;
+  --input-bg: #ffffff;
+  --method-badge: #eff6ff;
+  --social-bg: #f8fafc;
+  --social-text: #334155;
+  --social-hover: #eef2f7;
+  --stats-bg: #ffffff;
+  --stats-border: #e2e8f0;
+  --stats-text: #0f172a;
+  --stats-text-secondary: #64748b;
+}
+
+html,
+body,
+body.light-mode {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+html { min-height: 100%; }
+body {
+  min-height: 100vh;
+  font-family: 'Space Grotesk', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-image: radial-gradient(#dce5eb 1.15px, transparent 1.15px) !important;
+  background-size: 24px 24px !important;
+  background-attachment: fixed;
+}
+
+/* Keep existing category structure/icons. Never set opacity/filter on all SVGs. */
+#apiList svg,
+#apiList img {
+  visibility: visible !important;
+}
+
+#apiList {
+  color: #0f172a;
+}
+
+/* Category + endpoint cards: surface only. */
+#apiList > * {
+  background: #ffffff !important;
+  border-color: #dbe4ea !important;
+  box-shadow: 0 5px 18px rgba(15, 23, 42, 0.05) !important;
+}
+
+/* Endpoint names are black, but nothing else inside the card is recolored globally. */
+#apiList h1,
+#apiList h2,
+#apiList h3,
+#apiList h4,
+#apiList [data-endpoint-name],
+#apiList .endpoint-name,
+#apiList .endpoint-title,
+#apiList .api-name,
+#apiList .api-title {
+  color: #000000 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+/* Native status badge. */
+#apiList .status-ready {
+  background: #dcfce7 !important;
+  color: #15803d !important;
+  border: 2px solid #86efac !important;
+  box-shadow: 0 0 0 1px rgba(134,239,172,.22), 0 0 14px rgba(34,197,94,.20) !important;
+  opacity: 1 !important;
+  font-weight: 800 !important;
+}
+
+/* Exact role badges, assigned by the small JS marker below. */
+#apiList .xs-v6-free,
+#apiList .xs-v6-premium,
+#apiList .xs-v6-vip {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  white-space: nowrap !important;
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+  position: relative !important;
+  z-index: auto !important;
+  font-weight: 900 !important;
+}
+#apiList .xs-v6-free {
+  background: #dff4ff !important;
+  color: #0284c7 !important;
+  border: 2px solid #7dd3fc !important;
+  box-shadow: 0 0 0 1px rgba(125,211,252,.18), 0 0 15px rgba(14,165,233,.18) !important;
+}
+#apiList .xs-v6-premium {
+  background: #fff1c7 !important;
+  color: #b45309 !important;
+  border: 2px solid #f7c66f !important;
+  box-shadow: 0 0 0 1px rgba(245,158,11,.16), 0 0 16px rgba(245,158,11,.20) !important;
+}
+#apiList .xs-v6-vip {
+  background: #f1dcff !important;
+  color: #7c3aed !important;
+  border: 2px solid #c084fc !important;
+  box-shadow: 0 0 0 1px rgba(192,132,252,.16), 0 0 16px rgba(168,85,247,.20) !important;
+}
+
+/* URL / request / response / curl boxes: ONLY elements explicitly marked as code surfaces. */
+#apiList .xs-v6-code-box {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: inset 0 0 0 1px rgba(15,23,42,.025), 0 2px 8px rgba(15,23,42,.035) !important;
+  text-shadow: none !important;
+  backdrop-filter: none !important;
+}
+#apiList .xs-v6-code-box,
+#apiList .xs-v6-code-box * {
+  color: #111827 !important;
+  text-shadow: none !important;
+}
+#apiList .xs-v6-code-box * {
+  background-color: transparent !important;
+}
+#apiList .xs-v6-code-box ::selection {
+  background: #dbeafe !important;
+  color: #111827 !important;
+}
+
+#apiList .xs-v6-execute {
+  background: #06b6d4 !important;
+  color: #ffffff !important;
+  border: 2px solid #0891b2 !important;
+  opacity: 1 !important;
+  box-shadow: 0 6px 16px rgba(6,182,212,.25) !important;
+  backdrop-filter: none !important;
+  text-shadow: none !important;
+}
+#apiList .xs-v6-execute:hover {
+  background: #0891b2 !important;
+  color: #ffffff !important;
+}
+#apiList .xs-v6-execute:disabled,
+#apiList .xs-v6-execute[disabled] {
+  opacity: .65 !important;
+}
+
+/* Only the endpoint description section is hidden. */
+#apiList .xs-v6-description { display: none !important; }
+
+/* Category icons inserted by JS use a dedicated class and cannot affect siblings. */
+#apiList .xs-v6-category-icon {
+  width: 58px !important;
+  height: 58px !important;
+  min-width: 58px !important;
+  border-radius: 16px !important;
+  background: #eef0f3 !important;
+  border: 2px solid #d7dbe0 !important;
+  color: #31d981 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+}
+#apiList .xs-v6-category-icon svg {
+  width: 30px !important;
+  height: 30px !important;
+  display: block !important;
+  color: #31d981 !important;
+  stroke: currentColor !important;
+  fill: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+#themeToggle,
+.theme-toggle-btn {
+  display: none !important;
+}
+#themeBg { display: none !important; }
+#cyber-loader-overlay { display: none !important; }
+
+/* Preserve button/input readability in the light page without recoloring endpoint internals. */
+.light-mode .glass-panel,
+.glass-panel {
+  background: #ffffff !important;
+  border-color: #dbe4ea !important;
+  box-shadow: 0 4px 18px rgba(15,23,42,.04) !important;
+}
+
+.search-input,
+.light-mode .search-input {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+.search-input::placeholder { color: #94a3b8 !important; }
+
+.filter-btn,
+.light-mode .filter-btn {
+  background: #ffffff !important;
+  color: #334155 !important;
+  border-color: #cbd5e1 !important;
+}
+.filter-btn.active,
+.light-mode .filter-btn.active {
+  background: #e0f7fc !important;
+  color: #0369a1 !important;
+  border-color: #67e8f9 !important;
+}
+
+@media (max-width: 640px) {
+  #apiList .xs-v6-category-icon {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+    border-radius: 14px !important;
+  }
+}
+</style>
+</head>
         <body>
             <script>
                 Swal.fire({
@@ -1334,7 +1568,47 @@ function sendSweetAlert(res, icon, title, text, redirectUrl) {
                     window.location = '${redirectUrl}';
                 });
             </script>
-        </body>
+        
+<script>
+(() => {
+  const apiList=document.getElementById('apiList');
+  if(!apiList) return;
+  const clean=v=>String(v||'').replace(/\s+/g,' ').trim();
+  const icons={
+    AI:'<rect x="5" y="8" width="14" height="11" rx="4"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/><circle cx="10" cy="13" r="1.2" fill="currentColor" stroke="none"/><circle cx="14" cy="13" r="1.2" fill="currentColor" stroke="none"/><path d="M10 17h4M12 3v2"/>',
+    AMPRO:'<rect x="4" y="7" width="16" height="10" rx="2"/><path d="M8 7l2-3h4l2 3M8 11h3m2 0h3"/>',
+    KOMIKU:'<path d="M4 5.5A3.5 3.5 0 0 1 7.5 2H12v17H7.5A3.5 3.5 0 0 0 4 22V5.5Z"/><path d="M20 5.5A3.5 3.5 0 0 0 16.5 2H12v17h4.5A3.5 3.5 0 0 1 20 22V5.5Z"/>',
+    RANDOM:'<path d="M4 7h3c4 0 5 10 10 10h3"/><path d="m17 14 3 3-3 3M4 17h3c1.7 0 2.6-.7 3.4-2"/><path d="m17 4 3 3-3 3"/>',
+    TOOLS:'<path d="M14.5 5.5a4 4 0 0 0-5 5L4 16l4 4 5.5-5.5a4 4 0 0 0 5-5l-3.1 2.1-3-3 2.1-3.1Z"/>',
+    'XS-PEDIA':'<path d="m8 6-5 6 5 6M16 6l5 6-5 6M13 3l-2 18"/>',
+    OTHER:'<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4a12 12 0 0 1 0 16M12 4a12 12 0 0 0 0 16"/>'
+  };
+  function badgeClass(text){
+    const t=clean(text).replace(/^[✓✔♛👑♦♢⭐]+\s*/,'').toUpperCase();
+    if(t==='FREE') return 'xs-v6-free';
+    if(t==='PREMIUM'||t==='PREM') return 'xs-v6-premium';
+    if(t==='VIP') return 'xs-v6-vip';
+    if(t==='READY') return 'xs-v6-ready';
+    return '';
+  }
+  function markBadges(){
+    apiList.querySelectorAll('span,button,strong,b,label').forEach(el=>{const c=badgeClass(el.textContent);if(!c)return;el.classList.remove('xs-v6-free','xs-v6-premium','xs-v6-vip','xs-v6-ready');el.classList.add(c);});
+  }
+  function markNames(){
+    apiList.querySelectorAll('h1,h2,h3,h4,h5,h6,strong,b,[data-endpoint-name]').forEach(el=>{const t=clean(el.textContent);if(!t||/^(AI|AMPRO|KOMIKU|RANDOM|TOOLS|XS-PEDIA|OTHER)\s+\d+\s+ENDPOINTS?$/i.test(t))return;if(el.closest('button')&&!el.hasAttribute('data-endpoint-name'))return;if(t.length<=90)el.style.setProperty('color','#000000','important');});
+  }
+  function markExecute(){apiList.querySelectorAll('button,a').forEach(el=>{if(clean(el.textContent).toUpperCase()==='EXECUTE')el.classList.add('xs-v6-execute');});}
+  function hideDescriptions(){apiList.querySelectorAll('*').forEach(el=>{if(clean(el.textContent).toUpperCase()!=='DESKRIPSI ENDPOINT')return;let p=el;for(let i=0;i<4&&p&&p!==apiList;i++,p=p.parentElement){const t=clean(p.textContent).toUpperCase();if(t.startsWith('DESKRIPSI ENDPOINT')&&t.length<320){p.classList.add('xs-v6-description');return;}}});}
+  function markCode(){apiList.querySelectorAll('pre,code,textarea,input,div,section').forEach(el=>{if(el.classList.contains('xs-v6-code-box'))return;const text=clean(el.value||el.textContent);if(!text||text.length>2000)return;const low=text.toLowerCase();if(!(low.startsWith('https://')||low.startsWith('http://')||low.startsWith('curl ')||low.includes('https://')))return;const r=el.getBoundingClientRect(),tag=el.tagName.toLowerCase(),cls=String(el.className||'').toLowerCase();if(r.width<180||r.height<24)return;if(['pre','code','textarea'].includes(tag)||/(url|curl|response|request|code)/.test(cls))el.classList.add('xs-v6-code-box');});}
+  function findHeader(name){const prefix=name.toUpperCase();const a=[];apiList.querySelectorAll('*').forEach(el=>{const t=clean(el.textContent).toUpperCase();if(t.startsWith(prefix+' ') && /^\d+\s+ENDPOINTS?$/.test(t.slice(prefix.length+1)))a.push(el);});a.sort((x,y)=>x.textContent.length-y.textContent.length);return a[0]||null;}
+  function addIcons(){Object.entries(icons).forEach(([name,pathData])=>{const h=findHeader(name);if(!h)return;h.classList.add('xs-v6-category-header');if(h.querySelector(':scope > .xs-v6-category-icon'))return;const icon=document.createElement('span');icon.className='xs-v6-category-icon';icon.setAttribute('aria-hidden','true');icon.innerHTML='<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" focusable="false"><g stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'+pathData+'</g></svg>';h.insertBefore(icon,h.firstChild);});}
+  function apply(){markBadges();markNames();markExecute();hideDescriptions();markCode();addIcons();}
+  apply();
+  if(window.MutationObserver){let q=false;new MutationObserver(()=>{if(q)return;q=true;requestAnimationFrame(()=>{q=false;apply();});}).observe(apiList,{childList:true,subtree:true});}
+})();
+</script>
+
+</body>
         </html>
     `);
 }
@@ -1897,7 +2171,8 @@ app.get('/auth/logout', (req, res, next) => {
     });
 });
 
-const playlist = require('./database/playlist');
+const playlistData = require('./database/playlist');
+const playlist = Array.isArray(playlistData) ? playlistData.slice(0, 1) : (playlistData ? [playlistData] : []);
 
 const localFileUploader = fileUpload({
     createParentPath: true,
@@ -2601,6 +2876,8 @@ function getEndpointsFromRouter(category, file) {
 
   // Gunakan route.title / route.name jika ada, atau buat Title Case dari nama file
   const endpointTitle = route.title || (route.name && route.name !== 'router' ? route.name : formatEndpointTitle(file));
+  const routeDesc = route.desc || subRouter.desc || `/${category}/${file.replace(/\.js$/, "")}`;
+
   subRouter.stack.forEach(layer => {
     if (layer.route) {
       const methods = Object.keys(layer.route.methods).map(m => m.toUpperCase());
@@ -2632,7 +2909,7 @@ function getEndpointsFromRouter(category, file) {
       endpoints.push({
         name: endpointTitle, // Misal: "Aio Downloader" / "Capcut"
         path: `/api/${category}/${file.replace(/\.js$/, "")}`, // Misal: "/api/download/capcut"
-        desc: "",
+        desc: routeDesc,
         status: route.status || "ready",
         type: route.type || "free",
         params,
@@ -2660,16 +2937,25 @@ router.get('/apilist', (req, res) => {
     }
   }
 
-  // Tampilkan hanya 1 endpoint untuk sementara.
-  const firstCategory = categories.find(c => Array.isArray(c.items) && c.items.length);
-  const visibleCategories = firstCategory
-    ? [{ name: firstCategory.name, items: [firstCategory.items[0]] }]
-    : [];
+  categories.push({
+    name: "OTHER",
+    items: [
+      {
+        name: "/apilist",
+        path: "/api/apilist",
+        desc: "/apilist",
+        status: "ready",
+        type: "free",
+        params: { apikey: "" },
+        methods: ["GET"]
+      }
+    ]
+  });
 
-  res.json({ categories: visibleCategories });
+  res.json({ categories });
 });
 
-app.get('/api/server-status' , (req, res) => {
+app.get('/api/server-status', (req, res) => {
     const totalMem = os.totalmem();
     const freeMem = os.freemem();
     const usedMem = totalMem - freeMem;
@@ -2940,45 +3226,472 @@ app.get('/docs', (req, res) => {
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css" />
     
+    <style>
+    :root {
+        --neon-cyan: #00f3ff;
+        --neon-glow: rgba(0, 243, 255, 0.4);
+        --bg-dark: #030712;
+        --bg-card: rgba(15, 23, 42, 0.75);
+        --border-color: rgba(0, 243, 255, 0.2);
+    }
+
+    html.light {
+        --neon-cyan: #008b9b;
+        --neon-glow: rgba(0, 139, 155, 0.25);
+        --bg-dark: #f0fdfa;
+        --bg-card: rgba(255, 255, 255, 0.85);
+        --border-color: rgba(0, 139, 155, 0.3);
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+    .bg-dots-light {
+        background-color: #ffffff;
+        background-image: radial-gradient(#e2e8f0 1.5px, transparent 1.5px);
+        background-size: 24px 24px;
+    }
+
+    .bg-dots-dark {
+        background-color: #0f172a;
+        background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1.5px, transparent 1.5px);
+        background-size: 24px 24px;
+    }
+    #themeBg {
+        transition: background-color 0.3s ease, background-image 0.3s ease;
+    }
+    body {
+        transition: background 0.25s ease, color 0.25s ease;
+    }
     
+    .glass-panel {
+        background: #0b1329;
+        border: 1px solid rgba(6, 182, 212, 0.08);
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+    }
+    
+    .light-mode .glass-panel {
+        background: #ffffff;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+    }
+
+    .light-mode {
+        color: #0f172a !important;
+    }
+    .light-mode #mainTitle { color: #0f172a !important; }
+    .light-mode #mainDescription { color: #334155 !important; }
+    .light-mode #stat-battery-title,
+    .light-mode #stat-endpoints-title,
+    .light-mode #stat-categories-title { color: #475569 !important; }
+    .light-mode #siteFooter { color: #64748b !important; border-color: rgba(0,0,0,0.06); }
+    .light-mode #no-results-title { color: #0f172a !important; }
+
+    .light-mode .music-player-card {
+        background: #ffffff !important;
+        border-color: rgba(0, 0, 0, 0.08) !important;
+    }
+    .light-mode .music-text-title { color: #0f172a !important; }
+    .light-mode .music-text-artist { color: #475569 !important; }
+    .light-mode .music-progress-bar-bg { background-color: rgba(0,0,0,0.06) !important; }
+    
+    .light-mode .music-btn-nav {
+        background-color: #ffffff !important;
+        border-color: rgba(0,0,0,0.08) !important;
+        color: #1e293b !important;
+    }
+    .light-mode .music-btn-nav:hover {
+        background-color: #f1f5f9 !important;
+        color: #0f172a !important;
+    }
+    
+    .lang-btn {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        font-weight: bold;
+        padding: 4px 12px;
+        border: 1px solid #1e293b;
+        background-color: #0f172a;
+        color: #94a3b8;
+        transition: all 0.2s ease;
+    }
+    .lang-btn.active {
+        background-color: #06b6d4;
+        color: #020617;
+        border-color: #06b6d4;
+    }
+
+    .filter-btn {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        padding: 8px 14px;
+        border: 1px solid rgba(6, 182, 212, 0.15);
+        background: rgba(6, 182, 212, 0.03);
+        color: #94a3b8;
+        transition: all 0.2s ease;
+        border-radius: 10px;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+    .filter-btn:hover {
+        background: rgba(6, 182, 212, 0.08);
+        color: #e2e8f0;
+    }
+    .filter-btn.active {
+        background-color: #06b6d4 !important;
+        color: #020617 !important;
+        border-color: #06b6d4 !important;
+        font-weight: bold;
+    }
+    .light-mode .filter-btn {
+        border-color: rgba(15, 23, 42, 0.08);
+        background: rgba(15, 23, 42, 0.03);
+        color: #475569;
+    }
+    .light-mode .filter-btn:hover {
+        background: rgba(15, 23, 42, 0.06);
+    }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+    #cyber-loader-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        background:linear-gradient(135deg,#f4fff1,#dff7df,#fffdf3);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.6s ease;
+    }
+
+    #cyber-loader-overlay.fade-out {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    .scanner-beam {
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 300%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(0, 243, 255, 0.05), transparent);
+        animation: scanAnimation 4s infinite linear;
+    }
+    @keyframes scanAnimation {
+        0% { transform: translateY(-100%); }
+        100% { transform: translateY(100%); }
+    }
+
+    .hud-ring {
+        position: relative;
+        width: 130px;
+        height: 130px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .ring-outer {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        border: 2px dashed var(--neon-cyan);
+        opacity: 0.6;
+        animation: spinClockwise 10s linear infinite;
+        box-shadow: 0 0 15px var(--neon-glow);
+    }
+
+    .ring-middle {
+        position: absolute;
+        inset: 10px;
+        border-radius: 50%;
+        border: 2px solid transparent;
+        border-top-color: var(--neon-cyan);
+        border-bottom-color: var(--neon-cyan);
+        animation: spinCounterClockwise 4s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+    }
+
+    .ring-inner {
+        position: absolute;
+        inset: 20px;
+        border-radius: 50%;
+        border: 1px dotted var(--neon-cyan);
+        opacity: 0.8;
+        animation: spinClockwise 6s linear infinite;
+    }
+
+    .hud-avatar {
+        width: 65px;
+        height: 65px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--neon-cyan);
+        box-shadow: 0 0 20px var(--neon-cyan);
+        z-index: 10;
+    }
+
+    @keyframes spinClockwise { 100% { transform: rotate(360deg); } }
+    @keyframes spinCounterClockwise { 100% { transform: rotate(-360deg); } }
+
+    .animated-dots::after {
+        content: '';
+        display: inline-block;
+        width: 1.5em;
+        text-align: left;
+        animation: dotsAnimation 1.5s steps(4, end) infinite;
+    }
+    @keyframes dotsAnimation {
+        0% { content: ''; }
+        25% { content: '.'; }
+        50% { content: '..'; }
+        75% { content: '...'; }
+    }
+
+    .neon-progress-bar {
+        background: linear-gradient(90deg, #06b6d4, var(--neon-cyan));
+        box-shadow: 0 0 12px var(--neon-cyan);
+        transition: width 0.15s ease-out;
+    }
+
+.cyber-popup-bg {
+  background-color: #010811;
+  background-image: radial-gradient(circle at 50% 30%, #031e36 0%, #010811 80%);
+}
+
+.double-border-cyan {
+  background: #010d18;
+  border: 1.5px solid #00f3ff;
+  outline: 1.5px solid #00f3ff;
+  outline-offset: 2.5px;
+  box-shadow: 0 0 12px rgba(0, 243, 255, 0.35);
+}
+
+.cyber-pill-capsule {
+  background: #010a14;
+  border: 1.5px solid #00f3ff;
+  outline: 1.5px solid #00f3ff;
+  outline-offset: 2px;
+  border-radius: 9999px;
+  box-shadow: inset 0 0 6px rgba(0, 243, 255, 0.3);
+}
+
+.gold-metallic-button {
+  background: linear-gradient(180deg, #fef08a 0%, #f59e0b 35%, #b45309 70%, #78350f 100%);
+  border: 1px solid #fef08a;
+  color: #000000;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-shadow: 0px 1px 1px rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.45);
+}
+
+.gold-metallic-button:hover {
+  filter: brightness(1.15);
+}
+
+.cyan-solid-header {
+  background-color: #00f3ff;
+  color: #010811;
+  font-weight: 900;
+  box-shadow: 0 0 14px rgba(0, 243, 255, 0.8);
+}
+
+/* ============================================================
+   DOCS ENDPOINT CONTRAST PATCH
+   Keeps endpoint detail/request/response panels readable in
+   light mode while matching the dark cyber endpoint styling.
+   ============================================================ */
+#apiList {
+  --docs-panel: #0b1329;
+  --docs-panel-2: #111827;
+  --docs-border: rgba(0, 243, 255, 0.36);
+  --docs-border-soft: rgba(148, 163, 184, 0.28);
+  --docs-text: #f8fafc;
+  --docs-muted: #cbd5e1;
+  --docs-code: #9ef5c3;
+}
+
+/* The expanded endpoint feature/detail area */
+#apiList .endpoint-details,
+#apiList .endpoint-detail,
+#apiList .api-details,
+#apiList .api-detail,
+#apiList .endpoint-content,
+#apiList .endpoint-info,
+#apiList .request-response,
+#apiList .request-response-panel,
+#apiList .request-panel,
+#apiList .response-panel {
+  background: var(--docs-panel) !important;
+  color: var(--docs-text) !important;
+  border-color: var(--docs-border) !important;
+  box-shadow: inset 0 0 0 1px rgba(0, 243, 255, 0.07), 0 12px 30px rgba(2, 8, 23, 0.22) !important;
+}
+
+/* Catch common Tailwind dark panels used by the endpoint renderer. */
+#apiList .bg-slate-950,
+#apiList .bg-slate-900,
+#apiList .bg-slate-800,
+#apiList .bg-gray-950,
+#apiList .bg-gray-900,
+#apiList .bg-gray-800,
+#apiList .bg-zinc-950,
+#apiList .bg-zinc-900,
+#apiList [class*="bg-slate-900/"],
+#apiList [class*="bg-slate-800/"] {
+  background-color: var(--docs-panel) !important;
+  border-color: var(--docs-border-soft) !important;
+}
+
+/* Make every code/request/response surface solid and high-contrast. */
+#apiList pre,
+#apiList code,
+#apiList pre code,
+#apiList .code-block,
+#apiList .code-box,
+#apiList .request-box,
+#apiList .response-box,
+#apiList .curl-box,
+#apiList .url-box {
+  background: #08101f !important;
+  color: var(--docs-code) !important;
+  border: 1px solid var(--docs-border-soft) !important;
+  border-radius: 14px !important;
+  text-shadow: 0 0 8px rgba(158, 245, 195, 0.10);
+}
+
+#apiList pre,
+#apiList .code-block,
+#apiList .code-box,
+#apiList .request-box,
+#apiList .response-box,
+#apiList .curl-box {
+  box-shadow: inset 0 0 0 1px rgba(0, 243, 255, 0.08), 0 8px 20px rgba(2, 8, 23, 0.18) !important;
+}
+
+/* Text that becomes nearly white-on-white when light mode is active. */
+#apiList h1,
+#apiList h2,
+#apiList h3,
+#apiList h4,
+#apiList p,
+#apiList span,
+#apiList div,
+#apiList label,
+#apiList strong,
+#apiList small {
+  text-shadow: none;
+}
+
+.light-mode #apiList .endpoint-details,
+.light-mode #apiList .endpoint-detail,
+.light-mode #apiList .api-details,
+.light-mode #apiList .api-detail,
+.light-mode #apiList .endpoint-content,
+.light-mode #apiList .endpoint-info,
+.light-mode #apiList .request-response,
+.light-mode #apiList .request-response-panel,
+.light-mode #apiList .request-panel,
+.light-mode #apiList .response-panel {
+  background: #0b1329 !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(0, 243, 255, 0.38) !important;
+}
+
+.light-mode #apiList pre,
+.light-mode #apiList code,
+.light-mode #apiList pre code,
+.light-mode #apiList input,
+.light-mode #apiList textarea,
+.light-mode #apiList select,
+.light-mode #apiList .code-block,
+.light-mode #apiList .code-box,
+.light-mode #apiList .request-box,
+.light-mode #apiList .response-box,
+.light-mode #apiList .curl-box,
+.light-mode #apiList .url-box {
+  background: #08101f !important;
+  color: #d1fae5 !important;
+  border-color: rgba(0, 243, 255, 0.35) !important;
+}
+
+#apiList input::placeholder,
+#apiList textarea::placeholder {
+  color: #64748b !important;
+  opacity: 1 !important;
+}
+
+#apiList input:focus,
+#apiList textarea:focus,
+#apiList select:focus {
+  outline: none !important;
+  border-color: #00f3ff !important;
+  box-shadow: 0 0 0 2px rgba(0, 243, 255, 0.14), 0 0 14px rgba(0, 243, 255, 0.10) !important;
+}
+
+/* Strong, readable field labels inside the detail area. */
+#apiList label,
+#apiList .parameter-label,
+#apiList .param-label,
+#apiList [class*="text-slate-400"],
+#apiList [class*="text-gray-400"] {
+  color: #cbd5e1 !important;
+}
+
+#apiList [class*="text-white"],
+#apiList [class*="text-slate-200"],
+#apiList [class*="text-gray-200"] {
+  color: #f8fafc !important;
+}
+
+/* Request/response headings and status accents. */
+#apiList [class*="uppercase"],
+#apiList .request-title,
+#apiList .response-title,
+#apiList .code-title {
+  letter-spacing: 0.08em;
+}
+
+#apiList button {
+  border-width: 1px !important;
+}
+
+/* Keep the API detail blocks visually separated from endpoint cards. */
+#apiList .endpoint-details,
+#apiList .endpoint-detail,
+#apiList .api-details,
+#apiList .api-detail,
+#apiList .request-response-panel {
+  border-radius: 18px !important;
+  overflow: hidden;
+}
+
+/* Mobile readability */
+@media (max-width: 640px) {
+  #apiList pre,
+  #apiList code,
+  #apiList .code-block,
+  #apiList .code-box,
+  #apiList .request-box,
+  #apiList .response-box,
+  #apiList .curl-box {
+    font-size: 12px !important;
+    line-height: 1.65 !important;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+}
+</style>
 </head>
 <body class="min-h-screen antialiased text-slate-900 relative">
 
-<div id="cyber-loader-overlay">
-    <div class="scanner-beam"></div>
 
-    <div class="hud-ring mb-6">
-        <div class="ring-outer"></div>
-        <div class="ring-middle"></div>
-        <div class="ring-inner"></div>
-        <img src="https://arulz-xd.my.id/files/Q2C70y.png" alt="Logo" class="hud-avatar">
-    </div>
-
-    <div class="text-center px-4">
-        <div id="loader-title-text" class="text-sm font-extrabold tracking-widest uppercase text-cyan-400 code-font mb-1">
-            Memuat Halaman<span class="animated-dots"></span>
-        </div>
-        <div class="text-[10px] text-slate-400 font-mono tracking-wider opacity-80 uppercase">
-            SYSTEM INITIALIZING // CORE GATEWAY
-        </div>
-    </div>
-
-    <div class="w-64 sm:w-80 mt-6">
-        <div class="flex items-center justify-between text-xs font-bold code-font mb-2">
-            <span class="text-slate-400 text-[10px]">SYSTEM STATUS</span>
-            <span id="loader-percentage" class="text-cyan-400 text-sm">0%</span>
-        </div>
-        <div class="w-full h-2 bg-slate-900/90 rounded-full border border-cyan-500/30 overflow-hidden p-0.5">
-            <div id="loader-progress-fill" class="h-full rounded-full neon-progress-bar w-0"></div>
-        </div>
-    </div>
-
-    <div class="absolute bottom-6 text-[10px] font-mono text-slate-500 uppercase tracking-widest">
-        XS-PEDIA API v2.0
-    </div>
-</div>
-
-<div id="themeBg" class="fixed inset-0 -z-10"></div>
 
     <!-- Welcome Popup -->
     <div id="welcomePopup" class="fixed inset-0 z-[99999] hidden">
@@ -3021,7 +3734,34 @@ app.get('/docs', (req, res) => {
       </div>
     </div>
     
-
+<!-- Stable White Comic Theme Overrides -->
+<style>
+html, body, body.light-mode { background:#fff !important; color:#111827 !important; }
+html{min-height:100%;}
+body{font-family:"Trebuchet MS","Arial Rounded MT Bold",system-ui,sans-serif !important; background-color:#fff !important; background-image:radial-gradient(circle,#d7dee6 1.35px,transparent 1.45px) !important; background-size:22px 22px !important; background-attachment:fixed !important; letter-spacing:.01em;}
+body:before{content:none !important;}
+#themeBg,#cyber-loader-overlay,#themeToggle,.theme-toggle-btn{display:none !important;}
+.glass-panel,#apiList > *{background:#fff !important;border:2px solid #dbe3ea !important;color:#111827 !important;box-shadow:5px 5px 0 rgba(17,24,39,.045),0 10px 24px rgba(15,23,42,.045) !important;backdrop-filter:none !important;}
+#apiList{color:#111827 !important;}
+#apiList [data-endpoint-name],#apiList .endpoint-name,#apiList .endpoint-title,#apiList .api-name,#apiList .api-title{color:#000 !important;opacity:1 !important;text-shadow:none !important;}
+.filter-btn{background:#fff !important;color:#334155 !important;border:2px solid #cbd5e1 !important;border-radius:999px !important;font-family:"Trebuchet MS","Arial Rounded MT Bold",system-ui,sans-serif !important;font-weight:800 !important;box-shadow:4px 4px 0 rgba(15,23,42,.05) !important;}
+.filter-btn.active{background:#e0f2fe !important;color:#0369a1 !important;border-color:#38bdf8 !important;}
+#apiList .status-ready,#apiList .xs-v6-ready,#apiList .xs-v6-free,#apiList .xs-v6-premium,#apiList .xs-v6-vip{opacity:1 !important;filter:none !important;transform:none !important;font-weight:900 !important;box-shadow:2px 2px 0 rgba(15,23,42,.05) !important;}
+#apiList .status-ready,#apiList .xs-v6-ready{background:#dcfce7 !important;color:#15803d !important;border:2px solid #86efac !important;}
+#apiList .xs-v6-free{background:#dff4ff !important;color:#0284c7 !important;border:2px solid #7dd3fc !important;}
+#apiList .xs-v6-premium{background:#fff2c7 !important;color:#a16207 !important;border:2px solid #f4c76d !important;}
+#apiList .xs-v6-vip{background:#f2dcff !important;color:#7c3aed !important;border:2px solid #c084fc !important;}
+#apiList .xs-v6-code-box{background:#fff !important;color:#111827 !important;border:2px solid #cbd5e1 !important;box-shadow:inset 0 0 0 1px rgba(15,23,42,.025),3px 3px 0 rgba(15,23,42,.035) !important;text-shadow:none !important;backdrop-filter:none !important;}
+#apiList .xs-v6-code-box *{background:transparent !important;color:#111827 !important;text-shadow:none !important;}
+#apiList .xs-v6-execute,#apiList button[data-action="execute"],#apiList button.execute-button{background:#06b6d4 !important;color:#fff !important;border:2px solid #0891b2 !important;opacity:1 !important;box-shadow:4px 4px 0 rgba(8,145,178,.14) !important;}
+#apiList .xs-v6-execute:hover,#apiList button[data-action="execute"]:hover,#apiList button.execute-button:hover{background:#0891b2 !important;}
+#apiList .xs-v6-description{display:none !important;}
+#apiList .xs-v6-category-header{position:relative !important;padding-left:96px !important;min-height:82px;}
+#apiList .xs-v6-category-icon{position:absolute !important;left:20px !important;top:50% !important;transform:translateY(-50%) !important;width:58px !important;height:58px !important;min-width:58px !important;border-radius:16px !important;display:inline-flex !important;align-items:center !important;justify-content:center !important;background:#eef2f6 !important;border:2px solid #cbd5e1 !important;color:#0ea5e9 !important;z-index:2 !important;pointer-events:none !important;box-shadow:3px 3px 0 rgba(15,23,42,.05) !important;}
+#apiList .xs-v6-category-icon svg{width:30px !important;height:30px !important;display:block !important;visibility:visible !important;opacity:1 !important;stroke:currentColor !important;fill:none !important;}
+#bioDropdown{background:#fff !important;color:#0f172a !important;border-left-color:#dbe3ea !important;}
+@media(max-width:640px){#apiList .xs-v6-category-header{padding-left:82px !important;}#apiList .xs-v6-category-icon{left:16px !important;width:50px !important;height:50px !important;min-width:50px !important;border-radius:14px !important;}}
+</style>
 
 <!-- User Profile Pop-up Modal -->
 <style>
@@ -3195,14 +3935,6 @@ app.get('/docs', (req, res) => {
             </div>
             
             <div class="flex items-center gap-1.5">
-                <button id="themeToggle" class="flex items-center justify-center w-8 h-8 rounded-lg transition-all active:scale-95 focus:outline-none border border-white/10 bg-slate-900/50 text-white light-mode:bg-slate-100 light-mode:border-slate-300 light-mode:text-slate-900">
-                    <svg id="theme-toggle-dark-icon" class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
-                    </svg>
-                    <svg id="theme-toggle-light-icon" class="w-4 h-4 hidden" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path>
-                    </svg>
-                </button>
 
                 <button id="closeMenuBtn" class="text-white hover:text-red-400 transition-colors p-1.5 border border-white/10 rounded bg-slate-900/40 light-mode:text-slate-700 light-mode:bg-slate-100 light-mode:border-slate-300 light-mode:hover:text-red-500">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -3779,84 +4511,6 @@ function fetchUserProfile() {
         document.addEventListener('DOMContentLoaded', () => {
             fetchUserProfile();
         });
-
-        function getPageDisplayName() {
-            const path = window.location.pathname;
-            let fileName = path.split('/').pop().replace('.html', '').toLowerCase();
-
-            if (!fileName || fileName === '' || fileName === 'index') return 'Home';
-
-            const pageMap = {
-                'home': 'Home',
-                'docs': 'Dokumentasi',
-                'doc': 'Dokumentasi',
-                'status': 'Status Server',
-                'store': 'Store API',
-                'changelog': 'Changelog',
-                'uploader': 'Uploader File',
-                'pastecode': 'Pastecode',
-                'feedback': 'Feedback',
-                'privacy': 'Kebijakan Privasi',
-                'support': 'Dukungan Support',
-                'login': 'Halaman Login'
-            };
-
-            if (pageMap[fileName]) return pageMap[fileName];
-            return fileName.charAt(0).toUpperCase() + fileName.slice(1);
-        }
-
-        const pageName = getPageDisplayName();
-        const loaderTitleEl = document.getElementById('loader-title-text');
-        if (loaderTitleEl) {
-            loaderTitleEl.innerHTML = 'Memuat ' + pageName + '<span class="animated-dots"></span>';
-        }
-
-        let currentProgress = 0;
-        let hasFinishedLoading = false;
-        const progressFill = document.getElementById('loader-progress-fill');
-        const percentageText = document.getElementById('loader-percentage');
-        const loaderOverlay = document.getElementById('cyber-loader-overlay');
-
-        function updateProgress(targetVal) {
-            currentProgress = Math.min(Math.max(currentProgress, targetVal), 100);
-            if (progressFill) progressFill.style.width = currentProgress + '%';
-            if (percentageText) percentageText.innerText = Math.floor(currentProgress) + '%';
-        }
-
-        let progressInterval = null;
-        function hideLoaderImmediately() {
-            if (loaderOverlay) {
-                loaderOverlay.classList.add('fade-out');
-                loaderOverlay.style.display = 'none';
-            }
-        }
-
-        function finishLoader() {
-            if (hasFinishedLoading) return;
-            hasFinishedLoading = true;
-            if (progressInterval) clearInterval(progressInterval);
-            updateProgress(100);
-            try { sessionStorage.setItem('xs_pedia_loader_seen', '1'); } catch (_) {}
-            setTimeout(() => {
-                if (loaderOverlay) {
-                    loaderOverlay.classList.add('fade-out');
-                    setTimeout(() => { loaderOverlay.style.display = 'none'; }, 650);
-                }
-            }, 180);
-        }
-
-        let hasSeenLoader = false;
-        try { hasSeenLoader = sessionStorage.getItem('xs_pedia_loader_seen') === '1'; } catch (_) {}
-        if (hasSeenLoader) {
-            hideLoaderImmediately();
-            hasFinishedLoading = true;
-        } else {
-            progressInterval = setInterval(() => {
-                if (currentProgress < 85) updateProgress(currentProgress + Math.random() * 12 + 5);
-            }, 120);
-            window.addEventListener('load', finishLoader, { once:true });
-            setTimeout(finishLoader, 1500);
-        }
 </script>
 
 </body>
