@@ -4259,6 +4259,80 @@ body:before{content:none !important;}
     window.musicPlaylist = ${JSON.stringify(playlist)};
     const displayApiKey = "${req.user ? (req.user.apikey) : 'Silakan Login'}";
 </script>
+<style id="xs-endpoint-title-fix">
+/* Endpoint TITLE only — does not affect category names, badges, URL, request, response, or buttons. */
+#apiList .xs-endpoint-title-fix,
+#apiList .xs-endpoint-title-fix * {
+  font-family: "Arial Black", "Helvetica Neue", Arial, sans-serif !important;
+  font-size: 1.08rem !important;
+  font-weight: 900 !important;
+  font-style: normal !important;
+  letter-spacing: -0.01em !important;
+  color: #111111 !important;
+  -webkit-text-fill-color: #111111 !important;
+  text-shadow: 0.8px 0 #111111, -0.8px 0 #111111, 0 0.8px #111111, 0 -0.8px #111111 !important;
+  opacity: 1 !important;
+}
+</style>
+<script>
+(function () {
+  'use strict';
+  const endpointNames = new Set();
+  let syncQueued = false;
+
+  function collectNames() {
+    return fetch('/api/apilist', { credentials: 'same-origin', cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data || !Array.isArray(data.categories)) return;
+        data.categories.forEach(cat => {
+          (Array.isArray(cat.items) ? cat.items : []).forEach(item => {
+            if (item && item.name) endpointNames.add(String(item.name).trim());
+          });
+        });
+      })
+      .catch(() => {});
+  }
+
+  function applyEndpointTitleStyle() {
+    const root = document.getElementById('apiList');
+    if (!root || endpointNames.size === 0) return;
+
+    // Only annotate the deepest element whose visible text is exactly an endpoint name.
+    const all = root.querySelectorAll('*');
+    all.forEach(el => {
+      if (el.children.length !== 0) return;
+      const text = (el.textContent || '').trim();
+      if (text && endpointNames.has(text)) {
+        el.classList.add('xs-endpoint-title-fix');
+      }
+    });
+  }
+
+  function queueSync() {
+    if (syncQueued) return;
+    syncQueued = true;
+    requestAnimationFrame(() => {
+      syncQueued = false;
+      applyEndpointTitleStyle();
+    });
+  }
+
+  function boot() {
+    collectNames().then(queueSync);
+    const root = document.getElementById('apiList');
+    if (root) {
+      new MutationObserver(queueSync).observe(root, { childList: true, subtree: true, characterData: true });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot, { once: true });
+  } else {
+    boot();
+  }
+})();
+</script>
 <script src="script.js"></script>
 
 <script>

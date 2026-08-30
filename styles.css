@@ -635,3 +635,17 @@ body:before{content:none !important;}
   font-weight: 900 !important;
   text-shadow: 1px 1px 0 #fff, 2px 2px 0 rgba(15,23,42,.10) !important;
 }
+
+
+/* FINAL ENDPOINT TITLE WEIGHT — intentionally narrow selector. */
+#apiList .xs-endpoint-title-fix,
+#apiList .xs-endpoint-title-fix * {
+  font-family: "Arial Black", "Helvetica Neue", Arial, sans-serif !important;
+  font-size: 1.08rem !important;
+  font-weight: 900 !important;
+  line-height: 1.2 !important;
+  color: #111111 !important;
+  -webkit-text-fill-color: #111111 !important;
+  text-shadow: 0.8px 0 #111111, -0.8px 0 #111111, 0 0.8px #111111, 0 -0.8px #111111 !important;
+  opacity: 1 !important;
+}
