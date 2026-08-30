@@ -7,11 +7,11 @@ const router = express.Router();
 
 const BASE_URL = 'https://xs-pedia-payment.vercel.app';
 
-// GANTI dengan URL background kamu
+// Background yang kamu gunakan
 const DEFAULT_BG_URL = 'https://files.catbox.moe/sh2bcj.png';
 
 /**
- * Download gambar dari URL menjadi Buffer
+ * Download image menjadi Buffer
  */
 async function downloadImage(url) {
   const response = await axios.get(url, {
@@ -27,7 +27,7 @@ async function downloadImage(url) {
 }
 
 /**
- * Gabungkan QRIS dengan background
+ * Gabungkan QRIS + Background
  */
 async function createQrisComposite(qrisImageUrl) {
   const [bgBuffer, qrBuffer] = await Promise.all([
@@ -35,18 +35,13 @@ async function createQrisComposite(qrisImageUrl) {
     downloadImage(qrisImageUrl)
   ]);
 
-  // Ambil ukuran background
   const bgMeta = await sharp(bgBuffer).metadata();
 
   const bgWidth = bgMeta.width || 1080;
   const bgHeight = bgMeta.height || 1080;
 
-  /*
-   * Ukuran QR:
-   * 65% dari lebar background
-   * sehingga QR tetap jelas dan berada di tengah
-   */
-  const qrWidth = Math.floor(bgWidth * 0.65);
+  // QR diperkecil menjadi 50% dari lebar background
+  const qrWidth = Math.floor(bgWidth * 0.50);
 
   const resizedQr = await sharp(qrBuffer)
     .resize({
@@ -65,16 +60,14 @@ async function createQrisComposite(qrisImageUrl) {
 
   const qrMeta = await sharp(resizedQr).metadata();
 
-  const qrFinalWidth = qrMeta.width || qrWidth;
-  const qrFinalHeight = qrMeta.height || qrWidth;
+  const finalQrWidth = qrMeta.width || qrWidth;
+  const finalQrHeight = qrMeta.height || qrWidth;
 
-  /*
-   * Posisi QR di tengah background
-   */
-  const left = Math.floor((bgWidth - qrFinalWidth) / 2);
-  const top = Math.floor((bgHeight - qrFinalHeight) / 2);
+  // QR di tengah background
+  const left = Math.floor((bgWidth - finalQrWidth) / 2);
+  const top = Math.floor((bgHeight - finalQrHeight) / 2);
 
-  const result = await sharp(bgBuffer)
+  return await sharp(bgBuffer)
     .composite([
       {
         input: resizedQr,
@@ -84,17 +77,16 @@ async function createQrisComposite(qrisImageUrl) {
     ])
     .png()
     .toBuffer();
-
-  return result;
 }
 
 /**
- * Upload hasil composite ke Catbox
+ * Upload ke Catbox
  */
 async function uploadToCatbox(buffer) {
   const form = new FormData();
 
   form.append('reqtype', 'fileupload');
+
   form.append('fileToUpload', buffer, {
     filename: `qris-${Date.now()}.png`,
     contentType: 'image/png'
@@ -135,17 +127,8 @@ router.get('/', async (req, res) => {
       });
     }
 
-    if (!DEFAULT_BG_URL) {
-      return res.status(500).json({
-        success: false,
-        message: 'Background belum disetting.'
-      });
-    }
-
     /**
-     * ==========================================
-     * 1. REQUEST KE XS-PEDIA
-     * ==========================================
+     * Request QRIS ke XS-Pedia
      */
     const response = await axios.get(
       `${BASE_URL}/api/qris/create`,
@@ -169,7 +152,6 @@ router.get('/', async (req, res) => {
     }
 
     const rawQrImage = result.image_url || '';
-    const qrisString = result.qr_string || '';
 
     if (!rawQrImage) {
       return res.status(502).json({
@@ -179,60 +161,42 @@ router.get('/', async (req, res) => {
     }
 
     /**
-     * ==========================================
-     * 2. GABUNGKAN QR + BACKGROUND
-     * ==========================================
+     * Gabungkan QR + Background
      */
-    let compositeUrl = rawQrImage;
+    let combinedImage;
 
     try {
       const compositeBuffer = await createQrisComposite(rawQrImage);
 
-      /**
-       * ========================================
-       * 3. UPLOAD HASIL KE CATBOX
-       * ========================================
-       */
-      compositeUrl = await uploadToCatbox(compositeBuffer);
+      combinedImage = await uploadToCatbox(compositeBuffer);
 
     } catch (error) {
-      console.error(
-        'QRIS Composite / Upload Error:',
-        error.message
-      );
+      console.error('QRIS Composite Error:', error.message);
 
-      /**
-       * Kalau composite gagal, jangan bikin endpoint
-       * mati total. Tetap kembalikan QR asli.
-       */
-      compositeUrl = rawQrImage;
+      return res.status(502).json({
+        success: false,
+        message: 'Gagal menggabungkan QRIS dengan background.'
+      });
     }
 
     /**
-     * ==========================================
-     * 4. RESPONSE
-     * ==========================================
+     * RESPONSE HANYA HASIL GABUNGAN
      *
-     * image_url       = hasil QR + background
-     * image_url_raw   = QR asli XS-Pedia
+     * Tidak lagi mengirim:
+     * - image_url_raw
+     * - background_url
      */
-    return res.status(response.status || 200).json({
-      ...result,
-
-      image_url: compositeUrl,
-      image_url_combined: compositeUrl,
-      image_url_raw: rawQrImage,
-
-      qr_string: qrisString,
-
-      background_url: DEFAULT_BG_URL
+    return res.status(200).json({
+      success: true,
+      image_url: combinedImage,
+      image_url_combined: combinedImage,
+      amount: result.amount,
+      qr_string: result.qr_string,
+      created_at: result.created_at
     });
 
   } catch (error) {
-    console.error(
-      'XS-Pedia Create QRIS Error:',
-      error.message
-    );
+    console.error('XS-Pedia Create QRIS Error:', error.message);
 
     const status = error.response?.status || 500;
 
@@ -247,9 +211,10 @@ router.get('/', async (req, res) => {
 
 router.title = 'XS Pedia - Create QRIS';
 router.name = 'XS Pedia - Create QRIS';
-router.desc = 'Membuat QRIS dinamis dengan background.';
+router.desc = 'Membuat QRIS dengan background.';
 router.status = 'ready';
 router.type = 'free';
+
 router.paramsConfig = {
   amount: '100',
   static_qr: '000201010211....'
