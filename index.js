@@ -856,10 +856,10 @@ app.post('/transactions', async (req, res) => {
         const currentUsername = req.user?.username || req.user?.name || null;
         const currentEmail = req.user?.email || null;
 
-        // Kode unik 1-500 ditambahkan ke nominal pembayaran.
+        // Kode unik 1-300 ditambahkan ke nominal pembayaran.
         // Nominal dasar tetap berasal dari frontend, sedangkan nominal yang
         // benar-benar dikirim ke XS-Pedia sudah termasuk kode unik.
-        const uniqueCode = Math.floor(Math.random() * 500) + 1;
+        const uniqueCode = Math.floor(Math.random() * 300) + 1;
         const paymentAmount = inputAmount + uniqueCode;
 
         const xsPediaJson = await xsPediaRequest('/deposit/create', {
@@ -880,7 +880,7 @@ app.post('/transactions', async (req, res) => {
         if (!xspediaId) throw new Error('ID transaksi XS-Pedia tidak ditemukan.');
         if (!qrisNumber && !qrisImage) throw new Error('Data QRIS dari XS-Pedia tidak lengkap.');
 
-        const totalAmount = Number(qrisData.total_amount || qrisData.totalAmount || qrisData.gross_amount || inputAmount);
+        const totalAmount = Number(qrisData.total_amount || qrisData.totalAmount || qrisData.gross_amount || paymentAmount);
         const expiredAt = qrisData.expired_at || qrisData.expiredAt
             ? new Date(qrisData.expired_at || qrisData.expiredAt)
             : new Date(Date.now() + 15 * 60 * 1000);
