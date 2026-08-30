@@ -119,15 +119,24 @@ const userSchema = new mongoose.Schema({
 
 // Middleware Otomatis Update API Key saat Role Berubah jika tidak ditentukan khusus
 userSchema.pre('save', function() {
-    if (this.isModified('role')) {
-        const roleLower = (this.role || '').toLowerCase();
+    const roleLower = (this.role || '').toLowerCase();
+    const hasActivePaidRole = roleLower.includes('vip') || roleLower.includes('premium');
+    const customKey = typeof this.customApiKey === 'string' ? this.customApiKey.trim() : '';
 
+    // Custom API Key adalah sumber utama selama role Premium/VIP masih aktif.
+    // Jangan pernah menggantinya saat login atau save lain hanya karena role di-save ulang.
+    if (hasActivePaidRole && customKey) {
+        this.apikey = customKey;
+        return;
+    }
+
+    if (this.isModified('role') || this.isModified('apikey') || this.isNew) {
         if (roleLower.includes('vip')) {
-            if (!this.apikey) {
+            if (!this.apikey || this.apikey.startsWith('xs-pedia')) {
                 this.apikey = `${this.username.toLowerCase()}-custom-vip`;
             }
         } else if (roleLower.includes('premium')) {
-            if (!this.apikey || !this.apikey.includes('prem-')) {
+            if (!this.apikey || this.apikey.startsWith('xs-pedia') || this.apikey.includes('prem-')) {
                 this.apikey = generatePremiumApiKey(this.username);
             }
         } else {
@@ -1674,17 +1683,23 @@ app.post('/auth/login', (req, res, next) => {
             if (err) return next(err);
 
             try {
-                // Pastikan apikey sesuai dengan format role milik dokumen Mongo
+                // Pertahankan Custom API Key selama role Premium/VIP masih aktif.
                 let needSave = false;
                 const roleLower = (user.role || '').toLowerCase();
+                const savedCustomKey = typeof user.customApiKey === 'string' ? user.customApiKey.trim() : '';
 
-                if (roleLower.includes('vip')) {
-                    if (!user.apikey) {
+                if ((roleLower.includes('vip') || roleLower.includes('premium')) && savedCustomKey) {
+                    if (user.apikey !== savedCustomKey) {
+                        user.apikey = savedCustomKey;
+                        needSave = true;
+                    }
+                } else if (roleLower.includes('vip')) {
+                    if (!user.apikey || user.apikey.startsWith('xs-pedia')) {
                         user.apikey = `${user.username.toLowerCase()}-custom-vip`;
                         needSave = true;
                     }
                 } else if (roleLower.includes('premium')) {
-                    if (!user.apikey || !user.apikey.includes('prem-')) {
+                    if (!user.apikey || user.apikey.startsWith('xs-pedia') || user.apikey.includes('prem-')) {
                         user.apikey = generatePremiumApiKey(user.username);
                         needSave = true;
                     }
@@ -1695,9 +1710,7 @@ app.post('/auth/login', (req, res, next) => {
                     }
                 }
 
-                if (needSave) {
-                    await user.save();
-                }
+                if (needSave) await user.save();
 
                 const userPayload = {
                     id: user._id,
@@ -2219,45 +2232,7 @@ app.get('/api/user-status', async (req, res) => {
 });
 
 // ==================== PROFILE ACCOUNT SETTINGS ====================
-app.post('/api/profile/update', checkAuthSession, async (req, res) => {
-    try {
-        if (!req.user) return res.status(401).json({ status: false, message: 'Anda harus login terlebih dahulu!' });
-        const user = await User.findById(req.user.id || req.user._id);
-        if (!user) return res.status(404).json({ status: false, message: 'User tidak ditemukan!' });
-
-        const username = typeof req.body.username === 'string' ? req.body.username.trim() : user.username;
-        const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : user.email;
-        if (username.length < 3 || username.length > 30) return res.status(400).json({ status: false, message: 'Username harus 3-30 karakter.' });
-        if (!/^[A-Za-z0-9_.-]+$/.test(username)) return res.status(400).json({ status: false, message: 'Username hanya boleh berisi huruf, angka, titik, strip, dan underscore.' });
-        if (!/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ status: false, message: 'Format email tidak valid.' });
-
-        const duplicate = await User.findOne({
-            $or: [{ username }, { email }],
-            _id: { $ne: user._id }
-        }).lean();
-        if (duplicate) return res.status(400).json({ status: false, message: 'Username atau email sudah digunakan user lain.' });
-
-        const usernameChanged = user.username !== username;
-        const emailChanged = user.email !== email;
-        user.username = username;
-        user.email = email;
-        if (usernameChanged && String(user.role).toLowerCase().includes('premium')) {
-            user.apikey = generatePremiumApiKey(username);
-        }
-        await user.save();
-
-        const payload = {
-            id: user._id, username: user.username, email: user.email, name: user.username,
-            avatar: user.avatar?.startsWith('data:') ? null : user.avatar, role: user.role, apikey: user.apikey
-        };
-        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
-        res.cookie('auth_session', token, { maxAge: 7 * 24 * 60 * 60 * 1000, httpOnly: true, secure: true, sameSite: 'lax' });
-        res.json({ status: true, message: 'Profil berhasil diperbarui!', user: { username: user.username, email: user.email, apikey: user.apikey, role: user.role } });
-    } catch (error) {
-        console.error('❌ Gagal update profil:', error.message);
-        res.status(500).json({ status: false, message: 'Gagal memperbarui profil.' });
-    }
-});
+// Username/email/nomor tidak diedit dari halaman Profile. Data dibaca langsung dari MongoDB.
 
 app.post('/api/profile/send-phone-otp', checkAuthSession, async (req, res) => {
     try {
@@ -3995,7 +3970,7 @@ body:before{content:none !important;}
         </div>
 
         <div class="profile-title">User Profile</div>
-        <p class="profile-subtitle">Manage your account settings, daily limits, and API credentials.</p>
+        <p class="profile-subtitle">Informasi akun, masa aktif, dan kredensial API Anda.</p>
 
         <a href="/docs" class="profile-docs">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l3 3v17H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"/><path d="M14 2v5h5M8 12h8M8 16h8"/></svg>
@@ -4866,9 +4841,9 @@ function fetchUserProfile() {
                         const userKey = data.user.apikey || '';
                         document.getElementById('userApiKey').innerText = userKey || 'No Key Found';
                         const phoneEl = document.getElementById('userPhoneNumber');
-                        if (phoneEl) phoneEl.innerText = data.user.phoneNumber ? (data.user.phoneNumber + (data.user.phoneVerified ? ' • Terverifikasi' : '')) : 'Belum terdaftar';
+                        if (phoneEl) phoneEl.innerText = data.user.phoneNumber || '-';
                         const customInput = document.getElementById('customApiKeyInput');
-                        if (customInput && data.user.customApiKey) customInput.value = data.user.customApiKey;
+                        if (customInput) customInput.value = data.user.customApiKey || data.user.apikey || '';
                         setRoleTheme(data.user.role || 'Free User');
                         updateRoleCountdown(data.user.roleExpiresAt, data.user.role);
 
