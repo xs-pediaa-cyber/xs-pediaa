@@ -264,7 +264,7 @@
                     </div>
                     <div class="mb-6">
                         <span class="text-3xl font-extrabold text-white" id="premium-display-price">Rp 1.000</span>
-                        <span class="text-slate-400 text-xs font-mono block mt-1">Rp 100 / Hari</span>
+                        <span class="text-slate-400 text-xs font-mono block mt-1">Rp 500 / Hari</span>
                     </div>
                     <p class="text-slate-300 text-xs mb-6 leading-relaxed">
                         Pilihan tepat untuk developer aplikasi mandiri yang membutuhkan performa stabil dan kuota request besar.
@@ -311,7 +311,7 @@
                     </div>
                     <div class="mb-6">
                         <span class="text-3xl font-extrabold text-white" id="vip-display-price">Rp 1.500</span>
-                        <span class="text-slate-400 text-xs font-mono block mt-1">Rp 500 / Hari</span>
+                        <span class="text-slate-400 text-xs font-mono block mt-1">Rp 700 / Hari</span>
                     </div>
                     <p class="text-slate-400 text-xs mb-6 leading-relaxed">
                         Sempurna untuk aplikasi skala produksi besar, bot publik masif, atau sistem komersial tanpa batas.
@@ -356,7 +356,7 @@
 
             <div class="bg-gradient-to-r from-cyan-900 to-slate-900 p-4 text-white flex justify-between items-center border-b border-white/10 flex-shrink-0">
                 <h3 class="font-bold text-sm font-mono flex items-center gap-2 text-cyan-400">
-                    <i class="fa-solid fa-bolt"></i> Pembayaran QRIS PayWuz
+                    <i class="fa-solid fa-bolt"></i> Pembayaran QRIS XS-Pedia
                 </h3>
                 <button onclick="closePaymentModal()" class="text-slate-400 hover:text-white text-lg transition">
                     <i class="fa-solid fa-xmark"></i>
@@ -370,6 +370,7 @@
                         <p class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Total Pembayaran Paket</p>
                         <h3 id="modalQrisAmount" class="text-2xl font-extrabold text-cyan-400 font-mono mt-0.5">Rp 0</h3>
                         <p class="text-[10px] text-slate-400 mt-1">Order ID: <span id="modalQrisOrderId" class="font-mono text-white">TRX-000000</span></p>
+                        <p class="text-[10px] text-lime-300 mt-0.5">Kode Unik: <span id="modalUniqueCode" class="font-mono text-white">Rp 0</span></p>
                         <p class="text-[10px] text-amber-400 mt-0.5">Role Target: <strong id="modalQrisTargetRole" class="uppercase">PREMIUM USER</strong></p>
                     </div>
 
@@ -453,6 +454,7 @@
         let currentOrderId = "";
         let pollingInterval = null;
         let countdownInterval = null;
+        let statusCheckInFlight = false;
 
         function formatRupiah(amount) {
             return "Rp " + amount.toLocaleString('id-ID');
@@ -645,11 +647,12 @@
         }
 
         async function checkTransactionStatus(showMessage = false) {
-            if (!currentOrderId) return null;
+            if (!currentOrderId || statusCheckInFlight) return null;
+            statusCheckInFlight = true;
 
             const messageEl = document.getElementById('manualStatusMessage');
             try {
-                const res = await fetch(`/transactions/${encodeURIComponent(currentOrderId)}?t=${Date.now()}`, {
+                const res = await fetch(`/transactions/${encodeURIComponent(currentOrderId)}/xs-pedia-status?t=${Date.now()}`, {
                     method: 'GET',
                     cache: 'no-store',
                     headers: { 'Cache-Control': 'no-cache' }
@@ -658,7 +661,7 @@
                 const result = await res.json();
                 if (!res.ok || !result?.data) throw new Error(result?.message || 'Status transaksi tidak ditemukan');
 
-                const status = String(result.data.status || '').toLowerCase();
+                const status = String(result.data.providerStatus || result.data.status || '').toLowerCase();
 
                 if (showMessage && messageEl) {
                     messageEl.classList.remove('hidden');
@@ -703,6 +706,8 @@
                     messageEl.textContent = 'Gagal mengecek status. Sistem akan mencoba lagi otomatis.';
                 }
                 return null;
+            } finally {
+                statusCheckInFlight = false;
             }
         }
 
