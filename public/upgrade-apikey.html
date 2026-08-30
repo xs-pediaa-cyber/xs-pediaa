@@ -6,149 +6,40 @@
     <title>Upgrade Apikey - Arulzxd API</title>
     <link rel="icon" href="https://arulz-xd.my.id/files/Q2C70y.png" type="image/png">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- QRCode Generator & SweetAlert2 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body {
-            font-family: 'Comic Neue', sans-serif;
-            background:
-                radial-gradient(circle at 15% 10%, rgba(94, 255, 126, .18), transparent 28%),
-                radial-gradient(circle at 85% 90%, rgba(0, 190, 83, .16), transparent 30%),
-                linear-gradient(135deg, #031a0d 0%, #063d20 48%, #02150a 100%);
-            color: #f0fff4;
-            min-height: 100vh;
-            overflow-x: hidden;
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: #0b1329;
         }
-
         :root {
-            --green-light: #b9ff72;
-            --green: #35d65a;
-            --green-dark: #079447;
-            --green-deep: #032b16;
-            --comic-black: #06130b;
-            --paper: rgba(8, 39, 21, .88);
+            --neon-cyan: #00f3ff;
+            --neon-glow: rgba(0, 243, 255, 0.4);
+            --bg-dark: #030712;
+            --bg-card: rgba(15, 23, 42, 0.75);
+            --border-color: rgba(0, 243, 255, 0.2);
         }
 
-        body::before {
-            content: "";
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            opacity: .13;
-            background-image:
-                radial-gradient(#b9ff72 1px, transparent 1px),
-                radial-gradient(#35d65a 1px, transparent 1px);
-            background-size: 22px 22px, 31px 31px;
-            background-position: 0 0, 11px 13px;
-            mix-blend-mode: screen;
+        html.light {
+            --neon-cyan: #008b9b;
+            --neon-glow: rgba(0, 139, 155, 0.25);
+            --bg-dark: #f0fdfa;
+            --bg-card: rgba(255, 255, 255, 0.85);
+            --border-color: rgba(0, 139, 155, 0.3);
         }
-
-        header h1, header .text-3xl {
-            font-family: 'Bangers', cursive !important;
-            letter-spacing: 1.5px !important;
-            text-shadow: 3px 3px 0 #02170b, 0 0 18px rgba(53,214,90,.35);
+100% { transform: translateY(100%); }
         }
-
-        .comic-card {
-            background: linear-gradient(145deg, rgba(7,48,25,.96), rgba(2,24,12,.94)) !important;
-            border: 3px solid var(--green) !important;
-            border-radius: 22px !important;
-            box-shadow: 7px 7px 0 #011b0a, 0 0 28px rgba(53,214,90,.18) !important;
-            position: relative;
-            overflow: hidden;
+}
+}
+25% { content: '.'; }
+            50% { content: '..'; }
+            75% { content: '...'; }
         }
-
-        .comic-card::after {
-            content: "POW!";
-            position: absolute;
-            right: -14px;
-            top: 14px;
-            font-family: 'Bangers', cursive;
-            font-size: 20px;
-            color: #06210f;
-            background: var(--green-light);
-            border: 2px solid #02150a;
-            padding: 3px 12px;
-            transform: rotate(9deg);
-            box-shadow: 3px 3px 0 #02150a;
-        }
-
-        .comic-card:nth-child(2) {
-            border-color: var(--green-light) !important;
-            transform: translateY(-5px) rotate(-.3deg);
-        }
-
-        .comic-card:nth-child(3)::after { content: "WOW!"; }
-
-        .comic-title {
-            font-family: 'Bangers', cursive !important;
-            letter-spacing: 1px;
-        }
-
-        .duration-box {
-            background: linear-gradient(135deg, rgba(3,45,20,.96), rgba(9,76,38,.75)) !important;
-            border: 2px dashed var(--green-light) !important;
-            border-radius: 15px !important;
-            box-shadow: inset 0 0 18px rgba(53,214,90,.08);
-        }
-
-        .duration-input {
-            width: 58px;
-            text-align: center;
-            background: #03180b;
-            color: var(--green-light);
-            border: 2px solid var(--green);
-            border-radius: 9px;
-            padding: 6px 3px;
-            font-weight: 900;
-            font-family: 'Comic Neue', sans-serif;
-            outline: none;
-            box-shadow: 2px 2px 0 #011b0a;
-        }
-
-        .duration-input:focus {
-            border-color: var(--green-light);
-            box-shadow: 0 0 0 3px rgba(185,255,114,.13), 2px 2px 0 #011b0a;
-        }
-
-        .comic-btn {
-            border: 2px solid #02150a !important;
-            box-shadow: 3px 3px 0 #01150a !important;
-            font-family: 'Bangers', cursive !important;
-            letter-spacing: 1px;
-            transition: .15s ease;
-        }
-
-        .comic-btn:hover {
-            transform: translate(-1px, -2px) rotate(-1deg);
-            box-shadow: 5px 5px 0 #01150a !important;
-        }
-
-        .comic-btn:active {
-            transform: translate(2px, 2px);
-            box-shadow: 1px 1px 0 #01150a !important;
-        }
-
-        .green-gradient-text {
-            color: var(--green-light) !important;
-            background-image: linear-gradient(90deg, #b9ff72, #35d65a, #00a84f);
-        }
-
-        #paymentModal > div {
-            background: linear-gradient(145deg, #06381d, #02170b) !important;
-            border: 3px solid var(--green) !important;
-            border-radius: 22px !important;
-            box-shadow: 8px 8px 0 #011b0a, 0 0 35px rgba(53,214,90,.25) !important;
-        }
-
-        @media (max-width: 767px) {
-            .comic-card:nth-child(2) { transform: none; }
-        }
-
-        .swal2-popup.cyber-swal {
+.swal2-popup.cyber-swal {
             background: #0a1628 !important;
             border: 1px solid #162a45 !important;
             border-radius: 16px !important;
@@ -180,10 +71,125 @@
             height: auto !important;
             display: block;
         }
-    </style>
+    
+        body {
+            font-family: 'Comic Neue', sans-serif !important;
+            background:
+                radial-gradient(circle at 12% 0%, rgba(198,255,114,.20), transparent 30%),
+                radial-gradient(circle at 100% 12%, rgba(53,214,90,.16), transparent 28%),
+                linear-gradient(135deg, #03140c 0%, #07351f 50%, #02150c 100%) !important;
+            color: #f4ffe9;
+        }
+        h1,h2,h3,.font-black,.font-extrabold,.font-bold {
+            font-family: 'Bangers','Comic Neue',sans-serif !important;
+            letter-spacing: .7px;
+        }
+        body::before {
+            content:"";
+            position:fixed; inset:0; pointer-events:none; opacity:.13;
+            background-image:radial-gradient(#c6ff72 1px, transparent 1px);
+            background-size:18px 18px;
+        }
+        header { padding-top:2rem !important; }
+        header .inline-flex {
+            background:linear-gradient(135deg,#143d26,#2eb64f) !important;
+            color:#f3ffe8 !important;
+            border:2px solid #bfff72 !important;
+            box-shadow:5px 5px 0 #011b0e,0 0 22px rgba(53,214,90,.32) !important;
+            transform:rotate(-1deg);
+        }
+        header h1 .text-transparent {
+            background-image:linear-gradient(90deg,#caff72,#35d65a,#b7ff69) !important;
+        }
+        header p { color:#c6ddc8 !important; }
+        #userLoggedInfoBanner {
+            background:rgba(1,24,13,.82) !important;
+            border:2px solid rgba(191,255,114,.55) !important;
+            box-shadow:4px 4px 0 #011b0e !important;
+        }
+        main .grid > div {
+            background:linear-gradient(160deg,rgba(21,65,37,.98),rgba(3,27,16,.97)) !important;
+            border:3px solid #163f28 !important;
+            border-radius:22px !important;
+            box-shadow:8px 8px 0 #011b0e,0 0 22px rgba(53,214,90,.14) !important;
+            overflow:hidden;
+        }
+        main .grid > div:nth-child(2) {
+            border-color:#9bdc4d !important;
+            background:linear-gradient(160deg,#174b2d,#052516) !important;
+            box-shadow:10px 10px 0 #011b0e,0 0 30px rgba(155,220,77,.22) !important;
+        }
+        main .grid > div:nth-child(3) { border-color:#4ebc66 !important; }
+        main .grid > div:hover {
+            transform:translateY(-5px) rotate(-.3deg) !important;
+            border-color:#7be969 !important;
+        }
+        .text-amber-400,.text-amber-300,.text-purple-400,.text-purple-300 { color:#c6ff72 !important; }
+        .border-amber-500\/60,.border-purple-500\/50 { border-color:#76d95f !important; }
+        .bg-amber-500,.bg-purple-600 { background:#35d65a !important; }
+        .bg-gradient-to-r.from-amber-500 {
+            background-image:linear-gradient(90deg,#c6ff72,#35d65a) !important;
+        }
+        .duration-box {
+            display:flex; align-items:center; justify-content:space-between; gap:10px;
+            padding:10px !important;
+            background:rgba(0,21,11,.72) !important;
+            border:2px solid rgba(182,255,105,.28) !important;
+            border-radius:15px !important;
+        }
+        .duration-controls { display:flex; align-items:center; gap:8px; }
+        .duration-btn {
+            width:38px !important; height:38px !important;
+            border:2px solid #67cc58 !important;
+            border-radius:10px !important;
+            background:linear-gradient(135deg,#174b2b,#0b331d) !important;
+            color:#caff70 !important;
+            box-shadow:3px 3px 0 #011b0e !important;
+        }
+        .duration-input {
+            width:72px !important; height:38px !important;
+            text-align:center !important;
+            border:2px solid #9bdc4d !important;
+            border-radius:10px !important;
+            background:#efffdf !important; color:#092514 !important;
+            font-weight:900 !important; outline:none !important;
+            font-family:'Bangers','Comic Neue',sans-serif !important;
+            font-size:1.15rem !important;
+        }
+        .duration-input:focus { box-shadow:0 0 0 3px rgba(198,255,114,.18) !important; }
+        .purchase-btn {
+            background:linear-gradient(135deg,#c6ff72,#35d65a) !important;
+            color:#062213 !important;
+            border:2px solid #062213 !important;
+            box-shadow:5px 5px 0 #011b0e !important;
+        }
+        .purchase-btn:hover { filter:brightness(1.05); transform:translate(-1px,-1px); }
+        .swal2-popup.cyber-swal {
+            background:linear-gradient(160deg,#12361f,#04190e) !important;
+            border:3px solid #74dd5d !important;
+            border-radius:20px !important;
+            box-shadow:8px 8px 0 #011b0e,0 0 25px rgba(53,214,90,.3) !important;
+        }
+        .swal2-title.cyber-swal-title {
+            color:#c6ff72 !important;
+            font-family:'Bangers','Comic Neue',sans-serif !important;
+        }
+        .swal2-confirm.cyber-swal-confirm {
+            background:linear-gradient(135deg,#c6ff72,#35d65a) !important;
+            color:#062213 !important; border:2px solid #062213 !important;
+            box-shadow:4px 4px 0 #011b0e !important; border-radius:10px !important;
+        }
+        #paymentModal { background:rgba(0,12,6,.82) !important; }
+        #paymentModal > div {
+            background:linear-gradient(160deg,#12361f,#04190e) !important;
+            border:3px solid #74dd5d !important;
+            box-shadow:8px 8px 0 #011b0e !important;
+        }
+</style>
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col justify-between antialiased selection:bg-cyan-500/30 selection:text-cyan-300 relative">
-    <div class="absolute inset-0 bg-[linear-gradient(to_right,#1e293b10_1px,transparent_1px),linear-gradient(to_bottom,#1e293b10_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none"></div>
+
+        <div class="absolute inset-0 bg-[linear-gradient(to_right,#1e293b10_1px,transparent_1px),linear-gradient(to_bottom,#1e293b10_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none"></div>
 
     <header class="relative max-w-4xl mx-auto w-full px-6 pt-12 pb-6 text-center z-10">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 text-xs font-semibold tracking-wider uppercase mb-4 animate-pulse">
@@ -207,7 +213,7 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full items-stretch">
             
             <!-- FREE PLAN -->
-            <div class="comic-card bg-slate-900/60 border border-white/5 rounded-2xl p-6 flex flex-col justify-between shadow-xl backdrop-blur-sm transition-all duration-300 hover:border-slate-700 hover:translate-y-[-4px]">
+            <div class="bg-slate-900/60 border border-white/5 rounded-2xl p-6 flex flex-col justify-between shadow-xl backdrop-blur-sm transition-all duration-300 hover:border-slate-700 hover:translate-y-[-4px]">
                 <div>
                     <div class="flex items-center justify-between mb-4">
                         <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Free Plan</span>
@@ -242,8 +248,8 @@
                 </div>
             </div>
 
-            <!-- PREMIUM PLAN (MINIMAL 10 HARI) -->
-            <div class="comic-card bg-slate-900/90 border-2 border-amber-500/60 rounded-2xl p-6 flex flex-col justify-between shadow-2xl relative backdrop-blur-sm transition-all duration-300 hover:border-amber-400 hover:translate-y-[-4px]">
+            <!-- PREMIUM PLAN -->
+            <div class="bg-slate-900/90 border-2 border-amber-500/60 rounded-2xl p-6 flex flex-col justify-between shadow-2xl relative backdrop-blur-sm transition-all duration-300 hover:border-amber-400 hover:translate-y-[-4px]">
                 <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 text-[10px] font-black rounded-full uppercase tracking-wider shadow-lg">
                     Paling Populer
                 </div>
@@ -255,7 +261,7 @@
                     </div>
                     <div class="mb-6">
                         <span class="text-3xl font-extrabold text-white" id="premium-display-price">Rp 1.000</span>
-                        <span class="text-slate-400 text-xs font-mono block mt-1">Rp 100 / Hari (Min. 10 Hari)</span>
+                        <span class="text-slate-400 text-xs font-mono block mt-1">Rp 100 / Hari</span>
                     </div>
                     <p class="text-slate-300 text-xs mb-6 leading-relaxed">
                         Pilihan tepat untuk developer aplikasi mandiri yang membutuhkan performa stabil dan kuota request besar.
@@ -277,23 +283,23 @@
                 </div>
                 
                 <div class="mt-8 space-y-4">
-                    <div class="flex items-center justify-between bg-slate-950/40 border border-white/10 p-2 rounded-xl">
+                    <div class="duration-box">
                         <span class="text-xs text-slate-400 font-medium pl-2">Durasi Paket</span>
-                        <div class="flex items-center gap-3">
-                            <button onclick="updateDays('premium', -1)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-lg flex items-center justify-center transition border border-white/5">-</button>
-                            <input id="premium-days" class="duration-input" type="number" min="10" step="1" value="10" inputmode="numeric" aria-label="Durasi Premium dalam hari" onchange="setDays('premium', this.value)">
-                            <button onclick="updateDays('premium', 1)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-lg flex items-center justify-center transition border border-white/5">+</button>
+                        <div class="duration-controls">
+                            <button onclick="updateDays('premium', -1)" class="duration-btn">-</button>
+                            <input id="premium-days" class="duration-input" type="number" min="1" step="1" value="30" oninput="setDaysFromInput('premium', this.value)" aria-label="Durasi Premium">
+                            <button onclick="updateDays('premium', 1)" class="duration-btn">+</button>
                             <span class="text-xs text-slate-400 pr-2">Hari</span>
                         </div>
                     </div>
-                    <button onclick="processPaywuzPayment('premium')" class="block w-full text-center bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-slate-950 text-xs font-black py-3 px-4 rounded-xl transition duration-200 uppercase tracking-wider shadow-lg shadow-amber-500/10">
+                    <button onclick="processPaywuzPayment('premium')" class="purchase-btn block w-full text-center bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-slate-950 text-xs font-black py-3 px-4 rounded-xl transition duration-200 uppercase tracking-wider shadow-lg shadow-amber-500/10">
                         <i class="fa-solid fa-bolt mr-1"></i> Beli Premium (Otomatis)
                     </button>
                 </div>
             </div>
 
-            <!-- VIP PLAN (MINIMAL 3 HARI) -->
-            <div class="comic-card bg-slate-900/60 border border-white/5 rounded-2xl p-6 flex flex-col justify-between shadow-xl backdrop-blur-sm transition-all duration-300 hover:border-purple-500/50 hover:translate-y-[-4px]">
+            <!-- VIP PLAN -->
+            <div class="bg-slate-900/60 border border-white/5 rounded-2xl p-6 flex flex-col justify-between shadow-xl backdrop-blur-sm transition-all duration-300 hover:border-purple-500/50 hover:translate-y-[-4px]">
                 <div class="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-2xl pointer-events-none"></div>
                 <div>
                     <div class="flex items-center justify-between mb-4">
@@ -302,7 +308,7 @@
                     </div>
                     <div class="mb-6">
                         <span class="text-3xl font-extrabold text-white" id="vip-display-price">Rp 1.500</span>
-                        <span class="text-slate-400 text-xs font-mono block mt-1">Rp 500 / Hari (Min. 3 Hari)</span>
+                        <span class="text-slate-400 text-xs font-mono block mt-1">Rp 500 / Hari</span>
                     </div>
                     <p class="text-slate-400 text-xs mb-6 leading-relaxed">
                         Sempurna untuk aplikasi skala produksi besar, bot publik masif, atau sistem komersial tanpa batas.
@@ -324,16 +330,16 @@
                 </div>
 
                 <div class="mt-8 space-y-4">
-                    <div class="flex items-center justify-between bg-slate-950/40 border border-white/10 p-2 rounded-xl">
+                    <div class="duration-box">
                         <span class="text-xs text-slate-400 font-medium pl-2">Durasi Paket</span>
-                        <div class="flex items-center gap-3">
-                            <button onclick="updateDays('vip', -1)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-purple-400 font-bold text-lg flex items-center justify-center transition border border-white/5">-</button>
-                            <input id="vip-days" class="duration-input" type="number" min="3" step="1" value="3" inputmode="numeric" aria-label="Durasi VIP dalam hari" onchange="setDays('vip', this.value)">
-                            <button onclick="updateDays('vip', 1)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-purple-400 font-bold text-lg flex items-center justify-center transition border border-white/5">+</button>
+                        <div class="duration-controls">
+                            <button onclick="updateDays('vip', -1)" class="duration-btn">-</button>
+                            <input id="vip-days" class="duration-input" type="number" min="1" step="1" value="30" oninput="setDaysFromInput('vip', this.value)" aria-label="Durasi VIP">
+                            <button onclick="updateDays('vip', 1)" class="duration-btn">+</button>
                             <span class="text-xs text-slate-400 pr-2">Hari</span>
                         </div>
                     </div>
-                    <button onclick="processPaywuzPayment('vip')" class="block w-full text-center bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold py-3 px-4 rounded-xl transition duration-200 uppercase tracking-wider shadow-lg shadow-purple-500/20">
+                    <button onclick="processPaywuzPayment('vip')" class="purchase-btn block w-full text-center bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold py-3 px-4 rounded-xl transition duration-200 uppercase tracking-wider shadow-lg shadow-purple-500/20">
                         <i class="fa-solid fa-bolt mr-1"></i> Beli VIP (Otomatis)
                     </button>
                 </div>
@@ -422,8 +428,8 @@
 
     <script>
         const config = {
-            premium: { rate: 100, days: 10, min: 10, displayId: 'premium-display-price', daysId: 'premium-days', name: 'Premium User', roleName: 'Premium User' },
-            vip: { rate: 500, days: 3, min: 3, displayId: 'vip-display-price', daysId: 'vip-days', name: 'VIP User', roleName: 'VIP User' }
+            premium: { rate: 100, days: 30, min: 1, displayId: 'premium-display-price', daysId: 'premium-days', name: 'Premium User', roleName: 'Premium User' },
+            vip: { rate: 500, days: 30, min: 1, displayId: 'vip-display-price', daysId: 'vip-days', name: 'VIP User', roleName: 'VIP User' }
         };
 
         let currentUser = {
@@ -447,22 +453,30 @@
         function updateDays(type, change) {
             const plan = config[type];
             const input = document.getElementById(plan.daysId);
-            const current = parseInt(input.value, 10) || plan.min;
-            setDays(type, current + change);
+            let newDays = parseInt(input.value, 10);
+            if (Number.isNaN(newDays)) newDays = 30;
+            newDays = Math.max(plan.min, newDays + change);
+            plan.days = newDays;
+            input.value = newDays;
+            document.getElementById(plan.displayId).innerText = formatRupiah(newDays * plan.rate);
         }
 
-        function setDays(type, value) {
+        function setDaysFromInput(type, value) {
             const plan = config[type];
+            const input = document.getElementById(plan.daysId);
+            if (value === '') return;
+
             let newDays = parseInt(value, 10);
-            if (!Number.isFinite(newDays)) newDays = plan.min;
+            if (Number.isNaN(newDays)) return;
             newDays = Math.max(plan.min, newDays);
             plan.days = newDays;
 
-            const input = document.getElementById(plan.daysId);
-            input.value = newDays;
+            // Harga langsung berubah setiap angka diketik, tanpa menunggu Enter.
+            document.getElementById(plan.displayId).innerText = formatRupiah(newDays * plan.rate);
 
-            const totalCost = newDays * plan.rate;
-            document.getElementById(plan.displayId).innerText = formatRupiah(totalCost);
+            if (input.value !== String(newDays)) {
+                input.value = newDays;
+            }
         }
 
         async function fetchUserStatus() {
@@ -517,6 +531,14 @@
             const totalAmount = plan.days * plan.rate;
             currentOrderId = generateUniqueOrderId();
 
+            Swal.fire({
+                title: 'MEMPROSES QRIS',
+                text: 'Menghubungkan ke gateway...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); },
+                customClass: { popup: 'cyber-swal', title: 'cyber-swal-title', htmlContainer: 'cyber-swal-text' }
+            });
+
             try {
                 const res = await fetch('/transactions', {
                     method: 'POST',
@@ -535,6 +557,8 @@
 
                 const result = await res.json();
                 if (!result.status) throw new Error(result.message || "Gagal membuat transaksi QRIS");
+
+                Swal.close();
 
                 document.getElementById('modalQrisAmount').innerText = formatRupiah(result.data.amount || totalAmount);
                 document.getElementById('modalQrisOrderId').innerText = currentOrderId;
@@ -650,11 +674,15 @@
             document.getElementById('paymentModal').classList.add('hidden');
         }
 
-        window.onload = function() {
-            setDays('premium', config.premium.days);
-            setDays('vip', config.vip.days);
+        window.addEventListener('DOMContentLoaded', () => {
             fetchUserStatus();
-        };
+            config.premium.days = 30;
+            config.vip.days = 30;
+            document.getElementById('premium-days').value = 30;
+            document.getElementById('vip-days').value = 30;
+            document.getElementById('premium-display-price').innerText = formatRupiah(30 * config.premium.rate);
+            document.getElementById('vip-display-price').innerText = formatRupiah(30 * config.vip.rate);
+        });
 
     </script>
 </body>
