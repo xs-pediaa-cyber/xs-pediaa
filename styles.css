@@ -602,3 +602,20 @@ body:before{content:none !important;}
   -webkit-text-stroke: inherit !important;
   text-shadow: none !important;
 }
+
+/* Thin comic outline for navbar labels only. */
+.menu-link > span:not(.inline-flex),
+.menu-link > span:not(.inline-flex) * {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  -webkit-text-stroke: 0.65px #111827 !important;
+  text-shadow: none !important;
+  font-weight: 500 !important;
+  paint-order: stroke fill !important;
+}
+.menu-link:hover > span:not(.inline-flex),
+.menu-link:hover > span:not(.inline-flex) * {
+  color: #0891b2 !important;
+  -webkit-text-fill-color: #0891b2 !important;
+  -webkit-text-stroke: 0.5px #0891b2 !important;
+}
