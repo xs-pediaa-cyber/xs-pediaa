@@ -856,8 +856,14 @@ app.post('/transactions', async (req, res) => {
         const currentUsername = req.user?.username || req.user?.name || null;
         const currentEmail = req.user?.email || null;
 
+        // Kode unik 1-500 ditambahkan ke nominal pembayaran.
+        // Nominal dasar tetap berasal dari frontend, sedangkan nominal yang
+        // benar-benar dikirim ke XS-Pedia sudah termasuk kode unik.
+        const uniqueCode = Math.floor(Math.random() * 500) + 1;
+        const paymentAmount = inputAmount + uniqueCode;
+
         const xsPediaJson = await xsPediaRequest('/deposit/create', {
-            nominal: inputAmount,
+            nominal: paymentAmount,
             metode: 'QRIS'
         });
 
@@ -891,6 +897,9 @@ app.post('/transactions', async (req, res) => {
                 buyerId: currentUserId ? String(currentUserId) : null,
                 buyerUsername: currentUsername,
                 buyerEmail: currentEmail,
+                uniqueCode,
+                originalAmount: inputAmount,
+                paymentAmount,
                 xsPediaId: String(xspediaId),
                 qrisImage,
                 qrisBackground,
