@@ -102,7 +102,6 @@ const userSchema = new mongoose.Schema({
     resetPasswordToken: String,
     resetPasswordExpires: Date,
     apikey: { type: String, required: true, unique: true },
-    customApiKey: { type: String, default: null },
     role: { type: String, default: 'Free User' }, // 'Free User', 'Premium User', 'VIP User'
     roleExpiresAt: { type: Date, default: null }, // MASA BERLAKU ROLE
     limit: { type: Number, default: 0 },
@@ -119,24 +118,15 @@ const userSchema = new mongoose.Schema({
 
 // Middleware Otomatis Update API Key saat Role Berubah jika tidak ditentukan khusus
 userSchema.pre('save', function() {
-    const roleLower = (this.role || '').toLowerCase();
-    const hasActivePaidRole = roleLower.includes('vip') || roleLower.includes('premium');
-    const customKey = typeof this.customApiKey === 'string' ? this.customApiKey.trim() : '';
+    if (this.isModified('role')) {
+        const roleLower = (this.role || '').toLowerCase();
 
-    // Custom API Key adalah sumber utama selama role Premium/VIP masih aktif.
-    // Jangan pernah menggantinya saat login atau save lain hanya karena role di-save ulang.
-    if (hasActivePaidRole && customKey) {
-        this.apikey = customKey;
-        return;
-    }
-
-    if (this.isModified('role') || this.isModified('apikey') || this.isNew) {
         if (roleLower.includes('vip')) {
-            if (!this.apikey || this.apikey.startsWith('xs-pedia')) {
+            if (!this.apikey) {
                 this.apikey = `${this.username.toLowerCase()}-custom-vip`;
             }
         } else if (roleLower.includes('premium')) {
-            if (!this.apikey || this.apikey.startsWith('xs-pedia') || this.apikey.includes('prem-')) {
+            if (!this.apikey || !this.apikey.includes('prem-')) {
                 this.apikey = generatePremiumApiKey(this.username);
             }
         } else {
@@ -196,7 +186,6 @@ cron.schedule('0 * * * *', async () => {
             user.role = 'Free User';
             user.roleExpiresAt = null;
             user.apikey = generateFreeApiKey(); // Reset API Key ke Format Free
-            user.customApiKey = null; // Custom key hanya berlaku sampai role berakhir
             await user.save();
             console.log(`📉 [EXPIRED] Role pengguna ${user.username} dikembalikan ke Free User.`);
         }
@@ -324,7 +313,6 @@ app.post('/api/user/custom-apikey', checkAuthSession, async (req, res) => {
         }
 
         user.apikey = cleanKey;
-        user.customApiKey = cleanKey;
         await user.save();
 
         // Update Token JWT
@@ -1117,38 +1105,20 @@ app.get('/transactions/:orderId', async (req, res) => {
                     targetUser.role = targetRole;
                     targetUser.roleExpiresAt = currentExpiry;
 
-                    // Pertahankan Custom API Key yang sudah disimpan selama role masih aktif.
-                    // Hanya buat key otomatis jika user belum pernah melakukan custom key.
-                    const normalizedRole = targetRole.toLowerCase();
-                    const currentApiKey = String(targetUser.apikey || '').trim();
-                    const cleanTargetUsername = String(targetUser.username || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-                    const looksLikeAutomaticPremiumKey = currentApiKey.startsWith(cleanTargetUsername + 'prem-');
-                    const looksLikeAutomaticVipKey = currentApiKey === `${String(targetUser.username || '').toLowerCase()}-custom-vip`;
-
-                    // Custom key HARUS tetap permanen selama role masih aktif.
-                    // Kompatibilitas user lama: kalau customApiKey belum ada tetapi apikey sekarang
-                    // bukan key otomatis, anggap apikey tersebut sebagai custom key lama.
-                    if (targetUser.customApiKey && String(targetUser.customApiKey).trim()) {
-                        targetUser.apikey = String(targetUser.customApiKey).trim();
-                    } else if (currentApiKey && normalizedRole.includes('premium') && !looksLikeAutomaticPremiumKey && !currentApiKey.startsWith('xs-pedia')) {
-                        targetUser.customApiKey = currentApiKey;
-                        targetUser.apikey = currentApiKey;
-                    } else if (currentApiKey && normalizedRole.includes('vip') && !looksLikeAutomaticVipKey && !currentApiKey.startsWith('xs-pedia')) {
-                        targetUser.customApiKey = currentApiKey;
-                        targetUser.apikey = currentApiKey;
-                    } else if (targetRole === 'Premium User') {
-                        targetUser.customApiKey = null;
+                    // Premium mendapatkan key otomatis baru; VIP mempertahankan custom key jika ada.
+                    if (targetRole === 'Premium User') {
                         targetUser.apikey = generatePremiumApiKey(targetUser.username);
                     } else if (targetRole === 'VIP User') {
-                        targetUser.customApiKey = null;
-                        targetUser.apikey = `${targetUser.username.toLowerCase()}-custom-vip`;
+                        if (!targetUser.apikey || targetUser.apikey.startsWith('xs-pedia')) {
+                            targetUser.apikey = `${targetUser.username.toLowerCase()}-custom-vip`;
+                        }
                     }
 
                     // Update langsung ke collection users agar benar-benar tersimpan di DB
                     // yang dipakai aplikasi, bukan hanya mengandalkan object Mongoose lokal.
                     const updateResult = await User.updateOne(
                         { _id: targetUser._id },
-                        { $set: { role: targetRole, roleExpiresAt: currentExpiry, apikey: targetUser.apikey, customApiKey: targetUser.customApiKey || null } }
+                        { $set: { role: targetRole, roleExpiresAt: currentExpiry, apikey: targetUser.apikey } }
                     );
                     if (!updateResult.matchedCount) {
                         throw new Error(`Gagal menemukan document users untuk _id=${targetUser._id}`);
@@ -1683,23 +1653,17 @@ app.post('/auth/login', (req, res, next) => {
             if (err) return next(err);
 
             try {
-                // Pertahankan Custom API Key selama role Premium/VIP masih aktif.
+                // Pastikan apikey sesuai dengan format role milik dokumen Mongo
                 let needSave = false;
                 const roleLower = (user.role || '').toLowerCase();
-                const savedCustomKey = typeof user.customApiKey === 'string' ? user.customApiKey.trim() : '';
 
-                if ((roleLower.includes('vip') || roleLower.includes('premium')) && savedCustomKey) {
-                    if (user.apikey !== savedCustomKey) {
-                        user.apikey = savedCustomKey;
-                        needSave = true;
-                    }
-                } else if (roleLower.includes('vip')) {
-                    if (!user.apikey || user.apikey.startsWith('xs-pedia')) {
+                if (roleLower.includes('vip')) {
+                    if (!user.apikey) {
                         user.apikey = `${user.username.toLowerCase()}-custom-vip`;
                         needSave = true;
                     }
                 } else if (roleLower.includes('premium')) {
-                    if (!user.apikey || user.apikey.startsWith('xs-pedia') || user.apikey.includes('prem-')) {
+                    if (!user.apikey || !user.apikey.includes('prem-')) {
                         user.apikey = generatePremiumApiKey(user.username);
                         needSave = true;
                     }
@@ -1710,7 +1674,9 @@ app.post('/auth/login', (req, res, next) => {
                     }
                 }
 
-                if (needSave) await user.save();
+                if (needSave) {
+                    await user.save();
+                }
 
                 const userPayload = {
                     id: user._id,
@@ -1812,189 +1778,309 @@ app.post('/auth/register', async (req, res) => {
 
 app.post('/auth/forgot-password', async (req, res) => {
     try {
-        const email = req.body.email;
-        if (!email) {
-            return sendSweetAlert(res, 'error', 'Wajib Diisi', 'Email wajib diisi!', '/login');
+        const rawPhone = req.body.phoneNumber || req.body.phone || req.body.telephone || req.body.email || '';
+        const phoneNumber = normalizePhoneNumber(rawPhone);
+
+        if (!phoneNumber) {
+            return res.status(400).json({ status: false, message: 'Nomor telepon wajib diisi.' });
         }
 
-        const user = await User.findOne({ email: email.toLowerCase().trim() });
+        if (!/^62\d{8,13}$/.test(phoneNumber)) {
+            return res.status(400).json({ status: false, message: 'Gunakan nomor WhatsApp aktif dengan format 62xxxxxxxxxx.' });
+        }
+
+        if (!FONNTE_TOKEN) {
+            return res.status(500).json({ status: false, message: 'FONNTE_TOKEN belum dikonfigurasi di environment.' });
+        }
+
+        const user = await User.findOne({ phoneNumber });
         if (!user) {
-            return sendSweetAlert(res, 'error', 'Tidak Ditemukan', 'Email tersebut tidak terdaftar di sistem kami.', '/login');
+            return res.status(404).json({ status: false, message: 'Nomor tersebut belum terdaftar pada akun Anda.' });
         }
 
         if (user.provider !== 'local') {
-            return sendSweetAlert(res, 'error', 'Metode Login OAuth', `Akun ini mendaftar via ${user.provider.toUpperCase()}, tidak memerlukan reset password.`, '/login');
+            return res.status(400).json({ status: false, message: `Akun ini terdaftar melalui ${String(user.provider || '').toUpperCase()} dan tidak dapat reset password dengan OTP WhatsApp.` });
         }
 
-        const resetToken = crypto.randomBytes(20).toString('hex');
-
-        user.resetPasswordToken = resetToken;
-        user.resetPasswordExpires = Date.now() + 3600000; 
+        const otp = issuePhoneOtp();
+        user.phoneOtpHash = crypto.createHash('sha256').update(otp).digest('hex');
+        user.phoneOtpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
+        user.phoneOtpAttempts = 0;
         await user.save();
 
-        const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 465,
-            secure: true, 
-            auth: {
-                user: 'supportarulzxd@gmail.com',
-                pass: 'matsgyapivykobdv'
-            },
-            tls: { rejectUnauthorized: false }
+        const sent = await sendFonnteMessage(phoneNumber,
+            `🔐 XS-PEDIA API\n\n` +
+            `Kode OTP Reset Password Anda: *${otp}*\n\n` +
+            `Kode ini berlaku selama *5 menit*.\n` +
+            `Jangan berikan kode ini kepada siapa pun.\n\n` +
+            `Jika Anda tidak meminta reset password, abaikan pesan ini.`
+        );
+
+        if (!sent.status) {
+            user.phoneOtpHash = null;
+            user.phoneOtpExpiresAt = null;
+            user.phoneOtpAttempts = 0;
+            await user.save();
+            return res.status(502).json({ status: false, message: 'Gagal mengirim OTP ke WhatsApp. Coba lagi.' });
+        }
+
+        console.log(`📲 [FORGOT PASSWORD OTP] User=${user.username} PHONE=${phoneNumber.slice(0, 4)}******${phoneNumber.slice(-3)} OTP terkirim, berlaku 5 menit.`);
+        return res.json({
+            status: true,
+            message: 'OTP 6 digit telah dikirim ke nomor WhatsApp yang terdaftar.',
+            expiresAt: user.phoneOtpExpiresAt
         });
-
-        const host = req.get('host');
-        const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
-        const resetUrl = `${protocol}://${host}/reset-password/${resetToken}`;
-
-        const mailOptions = {
-            from: '"Support XS-Pedia" <supportarulzxd@gmail.com>',
-            to: user.email,
-            subject: 'Permintaan Reset Kata Sandi',
-            html: `
-<div style="background-color: #0b0f19; padding: 40px 20px; font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; min-height: 100%;">
-    <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 550px; background-color: #111827; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);">
-        <tr>
-            <td style="padding: 32px 32px 24px 32px; text-align: center;">
-                <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 800; tracking-tight: -0.025em;">
-                    XS-Pedia API
-                </h1>
-            </td>
-        </tr>
-        <tr>
-            <td style="padding: 0 32px 24px 32px;">
-                <div style="height: 1px; background: linear-gradient(to right, transparent, rgba(6, 182, 212, 0.2), transparent);"></div>
-            </td>
-        </tr>
-        <tr>
-            <td style="padding: 0 32px 32px 32px; color: #9ca3af; font-size: 14px; line-height: 24px;">
-                <p style="margin: 0 0 16px 0; color: #ffffff; font-size: 16px; font-weight: 600;">Halo ${user.username},</p>
-                <p style="margin: 0 0 16px 0;">Kami menerima permintaan untuk mengatur ulang kata sandi akun XS-Pedia API Anda.</p>
-                <p style="margin: 0 0 24px 0;">Silakan klik tombol di bawah ini untuk membuat kata sandi baru:</p>
-                
-                <table align="center" border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
-                    <tr>
-                        <td align="center" bgcolor="#06b6d4" style="border-radius: 12px;">
-                            <a href="${resetUrl}" target="_blank" style="display: inline-block; padding: 14px 28px; font-size: 14px; font-weight: 700; color: #0f172a; text-decoration: none; text-transform: uppercase; letter-spacing: 0.05em;">Reset Kata Sandi</a>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-        <tr>
-            <td style="padding: 0 32px 32px 32px; color: #6b7280; font-size: 12px; line-height: 20px;">
-                <p style="margin: 0 0 12px 0; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.05);">
-                    <strong style="color: #ef4444;">Penting:</strong> Link ini hanya berlaku selama <span style="color: #9ca3af; font-weight: 600;">1 jam</span> demi keamanan akun Anda.
-                </p>
-                <p style="margin: 0;">Jika Anda tidak merasa meminta reset password ini, Anda dapat mengabaikan email ini dengan aman.</p>
-            </td>
-        </tr>
-    </table>
-</div>
-`
-        };
-
-        await transporter.sendMail(mailOptions);
-        return sendSweetAlert(res, 'success', 'Sukses!', 'Link reset password telah dikirim ke email Anda.', '/login');
-
     } catch (error) {
-        console.error(error);
-        res.status(500).send('Gagal memproses lupa password.');
+        console.error('❌ Gagal proses forgot password OTP:', error.message);
+        return res.status(500).json({ status: false, message: 'Gagal memproses lupa password.' });
     }
 });
 
-app.get('/reset-password/:token', async (req, res) => {
+app.post('/auth/reset-password-otp', async (req, res) => {
     try {
-        const user = await User.findOne({ 
-            resetPasswordToken: req.params.token, 
-            resetPasswordExpires: { $gt: Date.now() } 
-        });
+        const phoneNumber = normalizePhoneNumber(req.body.phoneNumber || '');
+        const otp = String(req.body.otp || '').trim();
+        const password = String(req.body.password || '');
+        const confirmPassword = String(req.body.confirmPassword || '');
 
-        if (!user) {
-            return sendSweetAlert(res, 'error', 'Link Kadaluwarsa', 'Link reset password tidak valid atau sudah kedaluwarsa. Silakan minta link baru.', '/login');
+        if (!/^62\d{8,13}$/.test(phoneNumber)) {
+            return res.status(400).json({ status: false, message: 'Nomor telepon tidak valid.' });
         }
-
-        res.send(`
-    <!DOCTYPE html>
-    <html lang="id">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Buat Password Baru - XS-Pedia REST API</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-        <style>
-            body { background-color: #0b0f19; }
-            .solid-card { background: #111827; border: 1px solid rgba(255, 255, 255, 0.08); }
-        </style>
-    </head>
-    <body class="flex flex-col items-center justify-center min-h-screen p-4 antialiased text-gray-200">
-        <div class="solid-card p-8 rounded-2xl shadow-lg w-full max-w-md relative overflow-hidden">
-            <div class="text-center mb-6 relative z-10">
-                <h1 class="text-xl font-extrabold tracking-tight text-white mb-1">
-                    Atur Ulang <span class="text-cyan-400">Kata Sandi</span>
-                </h1>
-                <p class="text-xs text-gray-400">Silakan masukkan kata sandi baru Anda yang aman.</p>
-            </div>
-
-            <form action="/reset-password/${req.params.token}" method="POST" class="space-y-4 relative z-10">
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Password Baru</label>
-                    <input id="new-password" type="password" name="password" required placeholder="••••••••" 
-                        class="w-full bg-slate-900/60 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 font-medium transition">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Konfirmasi Password Baru</label>
-                    <input id="confirm-password" type="password" name="confirmPassword" required placeholder="••••••••" 
-                        class="w-full bg-slate-900/60 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 font-medium transition">
-                </div>
-
-                <button type="submit" class="w-full mt-2 bg-gradient-to-r from-cyan-600 to-cyan-500 text-slate-950 font-bold py-3 rounded-xl text-sm tracking-wide uppercase">Simpan Password Baru</button>
-            </form>
-        </div>
-    </body>
-    </html>
-`);
-
-    } catch (err) {
-        res.status(500).send("Error server.");
-    }
-});
-
-app.post('/reset-password/:token', async (req, res) => {
-    try {
-        const { password, confirmPassword } = req.body;
-
+        if (!/^\d{6}$/.test(otp)) {
+            return res.status(400).json({ status: false, message: 'OTP harus terdiri dari 6 digit.' });
+        }
+        if (password.length < 6) {
+            return res.status(400).json({ status: false, message: 'Password baru minimal 6 karakter.' });
+        }
         if (password !== confirmPassword) {
-            return sendSweetAlert(res, 'warning', 'Tidak Cocok', 'Password dan konfirmasi password tidak cocok!', '/login');
+            return res.status(400).json({ status: false, message: 'Password dan konfirmasi password tidak cocok.' });
         }
 
-        const user = await User.findOne({ 
-            resetPasswordToken: req.params.token, 
-            resetPasswordExpires: { $gt: Date.now() } 
-        });
-
+        const user = await User.findOne({ phoneNumber });
         if (!user) {
-            return sendSweetAlert(res, 'error', 'Gagal', 'Link reset password tidak valid atau sudah kedaluwarsa.', '/login');
+            return res.status(404).json({ status: false, message: 'Akun dengan nomor tersebut tidak ditemukan.' });
+        }
+        if (!user.phoneOtpHash || !user.phoneOtpExpiresAt) {
+            return res.status(400).json({ status: false, message: 'OTP tidak ditemukan. Silakan minta OTP baru.' });
+        }
+        if (new Date() > new Date(user.phoneOtpExpiresAt)) {
+            user.phoneOtpHash = null;
+            user.phoneOtpExpiresAt = null;
+            user.phoneOtpAttempts = 0;
+            await user.save();
+            return res.status(400).json({ status: false, message: 'OTP sudah kedaluwarsa. Silakan request OTP baru.' });
+        }
+
+        user.phoneOtpAttempts = Number(user.phoneOtpAttempts || 0) + 1;
+        if (user.phoneOtpAttempts > 5) {
+            user.phoneOtpHash = null;
+            user.phoneOtpExpiresAt = null;
+            user.phoneOtpAttempts = 0;
+            await user.save();
+            return res.status(429).json({ status: false, message: 'Terlalu banyak percobaan OTP. Silakan request OTP baru.' });
+        }
+
+        const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+        if (otpHash !== user.phoneOtpHash) {
+            await user.save();
+            return res.status(400).json({ status: false, message: 'OTP salah. Periksa kembali kode yang dikirim.' });
         }
 
         user.password = await bcrypt.hash(password, 10);
         user.resetPasswordToken = undefined;
         user.resetPasswordExpires = undefined;
+        user.phoneOtpHash = null;
+        user.phoneOtpExpiresAt = null;
+        user.phoneOtpAttempts = 0;
         await user.save();
 
-        return sendSweetAlert(res, 'success', 'Berhasil!', 'Password berhasil diubah! Silakan login dengan password baru Anda.', '/login');
-    } catch (err) {
-        res.status(500).send("Gagal menyimpan password baru.");
+        console.log(`✅ [PASSWORD RESET] User=${user.username} berhasil reset password via OTP WhatsApp.`);
+        return res.json({ status: true, message: 'Password berhasil diubah. Silakan login menggunakan password baru Anda.' });
+    } catch (error) {
+        console.error('❌ Gagal reset password via OTP:', error.message);
+        return res.status(500).json({ status: false, message: 'Gagal mengubah password.' });
+    }
+});
+
+app.post('/auth/forgot-password/resend', async (req, res) => {
+    try {
+        const phoneNumber = normalizePhoneNumber(req.body.phoneNumber || '');
+        if (!/^62\d{8,13}$/.test(phoneNumber)) {
+            return res.status(400).json({ status: false, message: 'Nomor telepon tidak valid.' });
+        }
+        if (!FONNTE_TOKEN) return res.status(500).json({ status: false, message: 'FONNTE_TOKEN belum dikonfigurasi di environment.' });
+
+        const user = await User.findOne({ phoneNumber, provider: 'local' });
+        if (!user) return res.status(404).json({ status: false, message: 'Nomor tersebut tidak terdaftar.' });
+
+        const otp = issuePhoneOtp();
+        user.phoneOtpHash = crypto.createHash('sha256').update(otp).digest('hex');
+        user.phoneOtpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
+        user.phoneOtpAttempts = 0;
+        await user.save();
+
+        const sent = await sendFonnteMessage(phoneNumber,
+            `🔄 *REQUEST OTP ULANG*\n\n` +
+            `Kode OTP Reset Password Anda: *${otp}*\n` +
+            `Berlaku selama *5 menit*. Jangan bagikan kode ini kepada siapa pun.`
+        );
+
+        if (!sent.status) return res.status(502).json({ status: false, message: 'Gagal mengirim OTP ulang.' });
+
+        return res.json({ status: true, message: 'OTP baru berhasil dikirim.', expiresAt: user.phoneOtpExpiresAt });
+    } catch (error) {
+        console.error('❌ Gagal resend OTP reset password:', error.message);
+        return res.status(500).json({ status: false, message: 'Gagal mengirim OTP ulang.' });
     }
 });
 
 app.get('/login', (req, res) => {
     if (req.user) {
-        return res.redirect('/docs'); 
+        return res.redirect('/docs');
     }
-    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+
+    try {
+        const loginPath = path.join(__dirname, 'public', 'login.html');
+        let html = fs.readFileSync(loginPath, 'utf8');
+
+        const forgotPasswordOtpScript = `
+<script>
+(function(){
+  const css = document.createElement('style');
+  css.textContent = ` + "`" + `
+    #xsForgotOtpModal{position:fixed;inset:0;z-index:999999;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(2,6,23,.82);backdrop-filter:blur(10px)}
+    #xsForgotOtpModal.open{display:flex}
+    #xsForgotOtpCard{width:100%;max-width:420px;background:#fff;border:2px solid #b9ff72;border-radius:24px;padding:22px;box-shadow:0 18px 60px rgba(7,148,71,.25);font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+    #xsForgotOtpCard h3{margin:0 0 6px;color:#0f2d1c;font-size:22px;font-weight:900}
+    #xsForgotOtpCard p{margin:0 0 14px;color:#607267;font-size:13px;line-height:1.5}
+    #xsForgotOtpCard input{width:100%;box-sizing:border-box;border:1.5px solid #cfe1cc;border-radius:14px;padding:12px 13px;margin:6px 0;font-size:14px;outline:none}
+    #xsForgotOtpCard button{width:100%;border:0;border-radius:14px;padding:12px;margin-top:8px;font-weight:900;cursor:pointer}
+    #xsForgotVerifyBtn{background:linear-gradient(135deg,#35d65a,#079447);color:#fff}
+    #xsForgotResendBtn{background:#edf8e8;color:#187447}
+    #xsForgotCancelBtn{background:#f3f5f3;color:#52645a}
+    #xsForgotTimer{text-align:center;font-weight:800;color:#187447;margin:6px 0 4px}
+  ` + "`" + `;
+  document.head.appendChild(css);
+
+  function ensureModal(){
+    if(document.getElementById('xsForgotOtpModal')) return;
+    const wrap=document.createElement('div');
+    wrap.id='xsForgotOtpModal';
+    wrap.innerHTML=` + "`" + `
+      <div id="xsForgotOtpCard">
+        <h3>🔐 Reset Password</h3>
+        <p>Masukkan OTP 6 digit yang dikirim ke nomor WhatsApp terdaftar, lalu buat password baru.</p>
+        <input id="xsForgotOtp" inputmode="numeric" maxlength="6" placeholder="OTP 6 digit">
+        <input id="xsForgotPass" type="password" placeholder="Password baru (min. 6 karakter)">
+        <input id="xsForgotPass2" type="password" placeholder="Ulangi password baru">
+        <div id="xsForgotTimer">OTP berlaku 05:00</div>
+        <button id="xsForgotVerifyBtn">UBAH PASSWORD</button>
+        <button id="xsForgotResendBtn" disabled>REQUEST OTP ULANG</button>
+        <button id="xsForgotCancelBtn">BATAL</button>
+      </div>
+    ` + "`" + `;
+    document.body.appendChild(wrap);
+    document.getElementById('xsForgotCancelBtn').onclick=()=>wrap.classList.remove('open');
+  }
+
+  function normalize62(value){ return String(value||'').replace(/\\D/g,'').replace(/^0+/,''); }
+  function setForgotPhoneField(form){
+    const inp=form.querySelector('input[name="email"], input[type="email"], input[name="phone"], input[name="phoneNumber"]');
+    if(!inp) return null;
+    inp.type='tel'; inp.name='phoneNumber'; inp.inputMode='numeric'; inp.autocomplete='tel';
+    inp.placeholder='628xxxxxxxxxx';
+    const label=inp.closest('div')?.querySelector('label');
+    if(label) label.textContent='Nomor WhatsApp Terdaftar';
+    return inp;
+  }
+
+  function startTimer(expiresAt, phone){
+    ensureModal();
+    const modal=document.getElementById('xsForgotOtpModal');
+    const timer=document.getElementById('xsForgotTimer');
+    const resend=document.getElementById('xsForgotResendBtn');
+    resend.disabled=true;
+    clearInterval(window.__xsForgotTimer);
+    const end=Date.parse(expiresAt)||Date.now()+300000;
+    function tick(){
+      const left=Math.max(0,end-Date.now());
+      const sec=Math.ceil(left/1000);
+      const mm=String(Math.floor(sec/60)).padStart(2,'0');
+      const ss=String(sec%60).padStart(2,'0');
+      timer.textContent=left>0 ? 'OTP berlaku '+mm+':'+ss : 'OTP sudah kedaluwarsa';
+      if(left<=0){clearInterval(window.__xsForgotTimer);resend.disabled=false;}
+    }
+    tick(); window.__xsForgotTimer=setInterval(tick,1000);
+    modal.classList.add('open');
+    window.__xsForgotPhone=phone;
+  }
+
+  async function sendForgotOtp(phone, resend){
+    try{
+      const endpoint=resend ? '/auth/forgot-password/resend' : '/auth/forgot-password';
+      const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phoneNumber:phone})});
+      const d=await r.json();
+      if(!d.status){ alert(d.message||'Gagal mengirim OTP.'); return; }
+      alert(resend ? '✅ OTP baru berhasil dikirim. Cek WhatsApp kamu.' : '✅ OTP 6 digit telah dikirim ke nomor WhatsApp terdaftar.');
+      startTimer(d.expiresAt,phone);
+    }catch(e){ alert('Gagal terhubung ke server. Coba lagi.'); }
+  }
+
+  async function verifyReset(){
+    const phone=window.__xsForgotPhone;
+    const otp=document.getElementById('xsForgotOtp')?.value.trim();
+    const p=document.getElementById('xsForgotPass')?.value;
+    const p2=document.getElementById('xsForgotPass2')?.value;
+    if(!/^62\\d{8,13}$/.test(phone||'')) return alert('Nomor telepon tidak valid.');
+    if(!/^\\d{6}$/.test(otp||'')) return alert('Masukkan OTP 6 digit.');
+    if((p||'').length<6) return alert('Password minimal 6 karakter.');
+    if(p!==p2) return alert('Konfirmasi password tidak cocok.');
+    try{
+      const r=await fetch('/auth/reset-password-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phoneNumber:phone,otp,password:p,confirmPassword:p2})});
+      const d=await r.json();
+      if(!d.status) return alert(d.message||'OTP tidak valid.');
+      alert('✅ Password berhasil diubah. Silakan login kembali.');
+      document.getElementById('xsForgotOtpModal').classList.remove('open');
+      window.location.href='/login';
+    }catch(e){ alert('Gagal mengubah password.'); }
+  }
+
+  function bind(){
+    document.querySelectorAll('form[action="/auth/forgot-password"]').forEach(form=>{
+      const inp=setForgotPhoneField(form);
+      if(!inp || form.dataset.xsForgotBound) return;
+      form.dataset.xsForgotBound='1';
+      form.addEventListener('submit',function(ev){
+        ev.preventDefault();
+        const phone=normalize62(inp.value);
+        if(!/^62\\d{8,13}$/.test(phone)) return alert('Masukkan nomor WhatsApp dengan format 62xxxxxxxxxx.');
+        sendForgotOtp(phone,false);
+      });
+    });
+  }
+
+  document.addEventListener('click',function(ev){
+    const t=ev.target.closest('[href*="forgot"], [data-forgot-password], #forgotPassword, .forgot-password, .forgot-link');
+    if(t){ setTimeout(bind,50); }
+  });
+  document.addEventListener('DOMContentLoaded',bind);
+  window.addEventListener('load',bind);
+  const mo=new MutationObserver(bind); mo.observe(document.documentElement,{childList:true,subtree:true});
+  document.addEventListener('click',function(ev){
+    if(ev.target.id==='xsForgotVerifyBtn') verifyReset();
+    if(ev.target.id==='xsForgotResendBtn') sendForgotOtp(window.__xsForgotPhone,true);
+  });
+})();
+</script>`;
+
+        const marker = '</body>';
+        if (html.includes(marker)) html = html.replace(marker, forgotPasswordOtpScript + marker);
+        else html += forgotPasswordOtpScript;
+        res.send(html);
+    } catch (error) {
+        console.error('❌ Gagal memuat halaman login:', error.message);
+        res.sendFile(path.join(__dirname, 'public', 'login.html'));
+    }
 });
 
 const GITHUB_CLIENT_ID = 'Ov23linJtLUZuyJVXpXZ';
@@ -2202,9 +2288,7 @@ app.get('/api/user-status', async (req, res) => {
                     email: activeUser.email,
                     avatar: activeUser.avatar,
                     apikey: activeUser.apikey,
-                    customApiKey: activeUser.customApiKey || null,
                     role: activeUser.role,
-                    roleExpiresAt: activeUser.roleExpiresAt || null,
                     phoneNumber: activeUser.phoneNumber || null,
                     phoneVerified: Boolean(activeUser.phoneVerified)
                 }
@@ -2218,9 +2302,7 @@ app.get('/api/user-status', async (req, res) => {
                     email: req.user.email,
                     avatar: req.user.avatar,
                     apikey: req.user.apikey,
-                    customApiKey: req.user.customApiKey || null,
                     role: req.user.role,
-                    roleExpiresAt: req.user.roleExpiresAt || null,
                     phoneNumber: req.user.phoneNumber || null,
                     phoneVerified: Boolean(req.user.phoneVerified)
                 }
@@ -2232,7 +2314,45 @@ app.get('/api/user-status', async (req, res) => {
 });
 
 // ==================== PROFILE ACCOUNT SETTINGS ====================
-// Username/email/nomor tidak diedit dari halaman Profile. Data dibaca langsung dari MongoDB.
+app.post('/api/profile/update', checkAuthSession, async (req, res) => {
+    try {
+        if (!req.user) return res.status(401).json({ status: false, message: 'Anda harus login terlebih dahulu!' });
+        const user = await User.findById(req.user.id || req.user._id);
+        if (!user) return res.status(404).json({ status: false, message: 'User tidak ditemukan!' });
+
+        const username = typeof req.body.username === 'string' ? req.body.username.trim() : user.username;
+        const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : user.email;
+        if (username.length < 3 || username.length > 30) return res.status(400).json({ status: false, message: 'Username harus 3-30 karakter.' });
+        if (!/^[A-Za-z0-9_.-]+$/.test(username)) return res.status(400).json({ status: false, message: 'Username hanya boleh berisi huruf, angka, titik, strip, dan underscore.' });
+        if (!/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ status: false, message: 'Format email tidak valid.' });
+
+        const duplicate = await User.findOne({
+            $or: [{ username }, { email }],
+            _id: { $ne: user._id }
+        }).lean();
+        if (duplicate) return res.status(400).json({ status: false, message: 'Username atau email sudah digunakan user lain.' });
+
+        const usernameChanged = user.username !== username;
+        const emailChanged = user.email !== email;
+        user.username = username;
+        user.email = email;
+        if (usernameChanged && String(user.role).toLowerCase().includes('premium')) {
+            user.apikey = generatePremiumApiKey(username);
+        }
+        await user.save();
+
+        const payload = {
+            id: user._id, username: user.username, email: user.email, name: user.username,
+            avatar: user.avatar?.startsWith('data:') ? null : user.avatar, role: user.role, apikey: user.apikey
+        };
+        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+        res.cookie('auth_session', token, { maxAge: 7 * 24 * 60 * 60 * 1000, httpOnly: true, secure: true, sameSite: 'lax' });
+        res.json({ status: true, message: 'Profil berhasil diperbarui!', user: { username: user.username, email: user.email, apikey: user.apikey, role: user.role } });
+    } catch (error) {
+        console.error('❌ Gagal update profil:', error.message);
+        res.status(500).json({ status: false, message: 'Gagal memperbarui profil.' });
+    }
+});
 
 app.post('/api/profile/send-phone-otp', checkAuthSession, async (req, res) => {
     try {
@@ -3970,7 +4090,7 @@ body:before{content:none !important;}
         </div>
 
         <div class="profile-title">User Profile</div>
-        <p class="profile-subtitle">Informasi akun, masa aktif, dan kredensial API Anda.</p>
+        <p class="profile-subtitle">Manage your account settings, daily limits, and API credentials.</p>
 
         <a href="/docs" class="profile-docs">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l3 3v17H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"/><path d="M14 2v5h5M8 12h8M8 16h8"/></svg>
@@ -4013,17 +4133,25 @@ body:before{content:none !important;}
             </div>
           </div>
 
-          <div class="profile-row">
-            <span class="profile-label">Nomor WhatsApp</span>
-            <div class="profile-actions">
-              <span id="userPhoneNumber" class="profile-value truncate">-</span>
+          <div class="profile-section mt-4" id="accountEditSection">
+            <div class="profile-section-title">Edit Account</div>
+            <div class="profile-key-box">
+              <input id="editUsernameInput" type="text" placeholder="Username" class="w-full bg-transparent border-b border-[#d6e5d1] px-1 py-2 text-sm outline-none mb-2">
+              <input id="editEmailInput" type="email" placeholder="Gmail / Email" class="w-full bg-transparent px-1 py-2 text-sm outline-none">
+              <button onclick="saveProfileSettings()" class="profile-copy">SIMPAN PROFIL</button>
             </div>
           </div>
 
-          <div class="profile-row">
-            <span class="profile-label">Masa Aktif</span>
-            <div class="profile-actions">
-              <span id="userRoleCountdown" class="profile-value">Tidak ada masa aktif</span>
+          <div class="profile-section">
+            <div class="profile-section-title">Verifikasi Nomor WhatsApp</div>
+            <div class="profile-key-box">
+              <input id="phoneNumberInput" type="tel" placeholder="Contoh: 628123456789" class="w-full bg-transparent border-b border-[#d6e5d1] px-1 py-2 text-sm outline-none mb-2">
+              <button onclick="sendPhoneOtp()" id="sendPhoneOtpBtn" class="profile-copy">KIRIM OTP 6 DIGIT</button>
+              <div id="phoneOtpBox" class="hidden mt-2">
+                <input id="phoneOtpInput" inputmode="numeric" maxlength="6" placeholder="Masukkan OTP 6 digit" class="w-full bg-transparent border-b border-[#d6e5d1] px-1 py-2 text-sm outline-none mb-2">
+                <button onclick="verifyPhoneOtp()" class="profile-copy">VERIFIKASI NOMOR</button>
+              </div>
+              <div id="phoneVerifyStatus" class="text-[11px] mt-2 font-bold text-[#607267]">Belum diverifikasi</div>
             </div>
           </div>
 
@@ -4691,8 +4819,7 @@ body:before{content:none !important;}
                 if (resData.status) {
                     alert(resData.message);
                     document.getElementById('userApiKey').innerText = resData.apikey;
-                    input.value = resData.apikey || '';
-                    if (typeof fetchUserProfile === 'function') fetchUserProfile();
+                    input.value = '';
                 } else {
                     alert(resData.message || 'Gagal mengubah API Key.');
                 }
@@ -4790,38 +4917,54 @@ body:before{content:none !important;}
             syncProfileMirrorFields();
         });
 
-        let roleCountdownTimer = null;
+        async function saveProfileSettings() {
+            const username = document.getElementById('editUsernameInput')?.value.trim();
+            const email = document.getElementById('editEmailInput')?.value.trim();
+            if (!username || !email) return alert('Username dan email wajib diisi.');
+            try {
+                const response = await fetch('/api/profile/update', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+                    body: JSON.stringify({ username, email })
+                });
+                const data = await response.json();
+                alert(data.message || 'Selesai');
+                if (data.status) fetchUserProfile();
+            } catch (e) { alert('Gagal menyimpan profil.'); }
+        }
 
-        function updateRoleCountdown(expiryValue, roleName) {
-            const el = document.getElementById('userRoleCountdown');
-            if (!el) return;
-            if (roleCountdownTimer) { clearInterval(roleCountdownTimer); roleCountdownTimer = null; }
+        async function sendPhoneOtp() {
+            const input = document.getElementById('phoneNumberInput');
+            const phone = input?.value.trim();
+            if (!phone) return alert('Masukkan nomor WhatsApp terlebih dahulu.');
+            const btn = document.getElementById('sendPhoneOtpBtn');
+            if (btn) btn.disabled = true;
+            try {
+                const response = await fetch('/api/profile/send-phone-otp', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+                    body: JSON.stringify({ phoneNumber: phone })
+                });
+                const data = await response.json();
+                alert(data.message || 'OTP diproses.');
+                if (data.status) document.getElementById('phoneOtpBox')?.classList.remove('hidden');
+            } catch (e) { alert('Gagal mengirim OTP.'); }
+            finally { if (btn) btn.disabled = false; }
+        }
 
-            const role = String(roleName || '').toLowerCase();
-            const expiry = expiryValue ? new Date(expiryValue).getTime() : NaN;
-            if (!role || role.includes('free') || !Number.isFinite(expiry)) {
-                el.textContent = role.includes('free') ? 'Gratis / Tidak kedaluwarsa' : 'Tidak ada masa aktif';
-                return;
-            }
-
-            const render = () => {
-                const diff = expiry - Date.now();
-                if (diff <= 0) {
-                    el.textContent = 'Sudah berakhir';
-                    clearInterval(roleCountdownTimer);
-                    roleCountdownTimer = null;
-                    setTimeout(fetchUserProfile, 500);
-                    return;
+        async function verifyPhoneOtp() {
+            const otp = document.getElementById('phoneOtpInput')?.value.trim();
+            if (!/^\d{6}$/.test(otp)) return alert('Masukkan OTP 6 digit.');
+            try {
+                const response = await fetch('/api/profile/verify-phone', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+                    body: JSON.stringify({ otp })
+                });
+                const data = await response.json();
+                alert(data.message || 'Selesai');
+                if (data.status) {
+                    document.getElementById('phoneVerifyStatus').textContent = '✅ Nomor terverifikasi';
+                    document.getElementById('phoneOtpBox')?.classList.add('hidden');
                 }
-                const totalSeconds = Math.floor(diff / 1000);
-                const days = Math.floor(totalSeconds / 86400);
-                const hours = Math.floor((totalSeconds % 86400) / 3600);
-                const mins = Math.floor((totalSeconds % 3600) / 60);
-                const secs = totalSeconds % 60;
-                el.textContent = days + ' Hari ' + String(hours).padStart(2,'0') + ':' + String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0');
-            };
-            render();
-            roleCountdownTimer = setInterval(render, 1000);
+            } catch (e) { alert('Gagal memverifikasi nomor.'); }
         }
 
 function fetchUserProfile() {
@@ -4840,12 +4983,16 @@ function fetchUserProfile() {
                         
                         const userKey = data.user.apikey || '';
                         document.getElementById('userApiKey').innerText = userKey || 'No Key Found';
-                        const phoneEl = document.getElementById('userPhoneNumber');
-                        if (phoneEl) phoneEl.innerText = data.user.phoneNumber || '-';
-                        const customInput = document.getElementById('customApiKeyInput');
-                        if (customInput) customInput.value = data.user.customApiKey || data.user.apikey || '';
+                        const editUsername = document.getElementById('editUsernameInput');
+                        const editEmail = document.getElementById('editEmailInput');
+                        const phoneInput = document.getElementById('phoneNumberInput');
+                        const phoneStatus = document.getElementById('phoneVerifyStatus');
+                        if (editUsername) editUsername.value = data.user.username || '';
+                        if (editEmail) editEmail.value = data.user.email || '';
+                        if (phoneInput) phoneInput.value = data.user.phoneNumber || '';
+                        if (phoneStatus) phoneStatus.textContent = data.user.phoneVerified ? '✅ Nomor terverifikasi' : 'Belum diverifikasi';
+                                                
                         setRoleTheme(data.user.role || 'Free User');
-                        updateRoleCountdown(data.user.roleExpiresAt, data.user.role);
 
                         fetchUserActivityLogs(userKey);
                         if (typeof fetchAndUpdateUserLimit === 'function') {
