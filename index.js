@@ -235,7 +235,7 @@ app.post('/api/user/update-avatar', checkAuthSession, (req, res) => {
 });
 
 // ====================================================
-// ENDPOINT CUSTOM APIKEY KHUSUS PREMIUM & VIP USER
+// ENDPOINT CUSTOM APIKEY KHUSUS VIP USER
 // ====================================================
 app.post('/api/user/custom-apikey', checkAuthSession, async (req, res) => {
     try {
@@ -252,7 +252,7 @@ app.post('/api/user/custom-apikey', checkAuthSession, async (req, res) => {
 
         const roleLower = (user.role || '').toLowerCase();
         if (!roleLower.includes('vip') && !roleLower.includes('premium')) {
-            return res.status(403).json({ status: false, message: 'Fitur Custom API Key hanya diperuntukkan untuk Premium User dan VIP User!' });
+            return res.status(403).json({ status: false, message: 'Fitur Custom API Key hanya diperuntukkan untuk Premium User atau VIP User!' });
         }
 
         const { customKey } = req.body;
@@ -540,51 +540,6 @@ async function xsPediaRequest(path, params = {}) {
     return response.data;
 }
 
-// XS-Pedia dapat mengirim status pada beberapa bentuk respons.
-// Prioritaskan format yang sama seperti contoh buynow: data.status === 'success',
-// lalu dukung beberapa variasi umum tanpa menganggap pesan sebagai status.
-function extractXsPediaStatus(payload) {
-    const candidates = [
-        payload?.data?.status,
-        payload?.status,
-        payload?.data?.data?.status,
-        payload?.result?.status,
-        payload?.data?.payment_status,
-        payload?.payment_status,
-        payload?.data?.transaction_status,
-        payload?.transaction_status
-    ];
-
-    for (const value of candidates) {
-        if (value !== undefined && value !== null && String(value).trim() !== '') {
-            return String(value).trim().toLowerCase();
-        }
-    }
-    return '';
-}
-
-async function syncTransactionStatusFromXsPedia(localTrx) {
-    const xsPediaId = localTrx?.itemDetails?.xsPediaId;
-    if (!xsPediaId) {
-        return { status: String(localTrx?.status || 'pending').toLowerCase(), provider: null };
-    }
-
-    // Sama seperti contoh buynow: GET /deposit/status?id=<id> dengan X-APIKEY.
-    const statusJson = await xsPediaRequest('/deposit/status', { id: xsPediaId });
-    const providerStatus = extractXsPediaStatus(statusJson);
-
-    if (['success', 'paid', 'settlement', 'settled'].includes(providerStatus)) {
-        localTrx.status = 'success';
-    } else if (['cancel', 'cancelled', 'failed', 'expired', 'expire'].includes(providerStatus)) {
-        localTrx.status = 'cancelled';
-    } else if (providerStatus) {
-        localTrx.status = 'pending';
-    }
-
-    localTrx.updatedAt = new Date();
-    return { status: String(localTrx.status || 'pending').toLowerCase(), provider: providerStatus, raw: statusJson };
-}
-
 const cacheSchema = new mongoose.Schema({
     key: { type: String, required: true, unique: true },
     data: { type: mongoose.Schema.Types.Mixed, required: true },
@@ -848,14 +803,14 @@ const transactionSchema = new mongoose.Schema({
     paymentNumber: { type: String, default: null }, 
     paymentMethod: { type: String, default: "QRIS" },
     status: { type: String, default: "pending" }, 
-    itemDetails: {
-        nama: String,
-        harga: Number,
-        harga_diskon: Number,
-        kategori: String,
-        gambar: String,
-        link: String
-    },
+    // Simpan seluruh metadata transaksi upgrade, termasuk buyerId, xsPediaId,
+    // uniqueCode, qrisImage, dan upgradeProcessed. Mixed mencegah Mongoose
+    // membuang field tambahan yang diperlukan untuk verifikasi pembayaran.
+    itemDetails: { type: mongoose.Schema.Types.Mixed, default: {} },
+    xsPediaId: { type: String, default: null, index: true },
+    buyerId: { type: String, default: null, index: true },
+    buyerUsername: { type: String, default: null },
+    buyerEmail: { type: String, default: null },
     productLink: { type: String, default: null },
     createdAt: { type: Date, default: Date.now },
     expiredAt: { type: Date, required: true },
@@ -916,40 +871,47 @@ app.post('/transactions', async (req, res) => {
 
         const qrisData = xsPediaJson.data || {};
         const qrisNumber = qrisData.payment_number || qrisData.paymentNumber || qrisData.qr_string || qrisData.qrString || qrisData.qr_url || qrisData.qrUrl;
-        // Gunakan gambar QRIS langsung dari respons XS-Pedia agar background/tampilan
-        // mengikuti gambar yang disediakan provider secara otomatis.
         const qrisImage = qrisData.qr_image || qrisData.qrImage || null;
         const qrisBackground = qrisData.background || qrisData.qr_background || qrisData.qrBackground || null;
-        const xspediaId = qrisData.id || qrisData.transaction_id || qrisData.transactionId || null;
+        const xspediaId = qrisData.id || qrisData.transaction_id || qrisData.transactionId || qrisData.trx_id || qrisData.trxId || null;
 
-        if (!xspediaId) throw new Error('ID transaksi XS-Pedia tidak ditemukan.');
+        if (!xspediaId) throw new Error('ID transaksi XS-Pedia tidak ditemukan pada respons create.');
         if (!qrisNumber && !qrisImage) throw new Error('Data QRIS dari XS-Pedia tidak lengkap.');
 
-        const totalAmount = Number(qrisData.total_amount || qrisData.totalAmount || qrisData.gross_amount || paymentAmount);
-        const expiredAt = qrisData.expired_at || qrisData.expiredAt
-            ? new Date(qrisData.expired_at || qrisData.expiredAt)
+        const totalAmount = Number(qrisData.total_amount || qrisData.totalAmount || qrisData.gross_amount || qrisData.grossAmount || paymentAmount);
+        const rawExpiredAt = qrisData.expired_at || qrisData.expiredAt || qrisData.expiry || qrisData.expires_at;
+        const parsedExpiredAt = rawExpiredAt ? new Date(rawExpiredAt) : null;
+        const expiredAt = parsedExpiredAt && !Number.isNaN(parsedExpiredAt.getTime())
+            ? parsedExpiredAt
             : new Date(Date.now() + 15 * 60 * 1000);
+
+        const transactionDetails = {
+            ...(itemDetails || {}),
+            qty: buyQty,
+            buyerId: currentUserId ? String(currentUserId) : null,
+            buyerUsername: currentUsername,
+            buyerEmail: currentEmail,
+            uniqueCode,
+            originalAmount: inputAmount,
+            paymentAmount,
+            xsPediaId: String(xspediaId),
+            qrisImage,
+            qrisBackground,
+            xsPediaResponse: qrisData,
+            upgradeProcessed: false
+        };
 
         const newTransaction = new Transaction({
             orderId,
-            amount: Number.isFinite(totalAmount) && totalAmount > 0 ? totalAmount : inputAmount,
+            amount: Number.isFinite(totalAmount) && totalAmount > 0 ? totalAmount : paymentAmount,
             paymentNumber: qrisNumber || qrisImage,
             paymentMethod: "QRIS",
             status: "pending",
-            itemDetails: {
-                ...(itemDetails || {}),
-                qty: buyQty,
-                buyerId: currentUserId ? String(currentUserId) : null,
-                buyerUsername: currentUsername,
-                buyerEmail: currentEmail,
-                uniqueCode,
-                originalAmount: inputAmount,
-                paymentAmount,
-                xsPediaId: String(xspediaId),
-                qrisImage,
-                qrisBackground,
-                xsPediaResponse: qrisData
-            },
+            itemDetails: transactionDetails,
+            xsPediaId: String(xspediaId),
+            buyerId: currentUserId ? String(currentUserId) : null,
+            buyerUsername: currentUsername,
+            buyerEmail: currentEmail,
             productLink: itemDetails?.link || null,
             expiredAt
         });
@@ -980,74 +942,6 @@ app.post('/transactions', async (req, res) => {
     }
 });
 
-app.get('/transactions/:orderId/xs-pedia-status', async (req, res) => {
-    try {
-        const { orderId } = req.params;
-        const localTrx = await Transaction.findOne({ orderId });
-        if (!localTrx) {
-            return res.status(404).json({ status: false, message: 'Transaksi tidak ditemukan' });
-        }
-
-        const providerResult = await syncTransactionStatusFromXsPedia(localTrx);
-
-        if (providerResult.status === 'success' && !localTrx.itemDetails?.upgradeProcessed) {
-            const itemName = localTrx.itemDetails?.nama || '';
-            if (itemName.includes('Upgrade Role')) {
-                const daysToAdd = Math.max(1, Number(localTrx.itemDetails?.qty) || 1);
-                const targetRole = itemName.toLowerCase().includes('vip') ? 'VIP User' : 'Premium User';
-                let targetUser = null;
-                const buyerId = localTrx.itemDetails?.buyerId;
-                const buyerEmail = localTrx.itemDetails?.buyerEmail;
-                const buyerUsername = localTrx.itemDetails?.buyerUsername;
-
-                if (buyerId && mongoose.Types.ObjectId.isValid(buyerId)) targetUser = await User.findById(buyerId);
-                if (!targetUser && buyerEmail) targetUser = await User.findOne({ email: buyerEmail.toLowerCase() });
-                if (!targetUser && buyerUsername) targetUser = await User.findOne({ username: buyerUsername.toLowerCase() });
-
-                if (targetUser) {
-                    let currentExpiry = (targetUser.roleExpiresAt && new Date(targetUser.roleExpiresAt) > new Date())
-                        ? new Date(targetUser.roleExpiresAt) : new Date();
-                    currentExpiry.setDate(currentExpiry.getDate() + daysToAdd);
-                    targetUser.role = targetRole;
-                    targetUser.roleExpiresAt = currentExpiry;
-                    if (targetRole === 'Premium User') {
-                        targetUser.apikey = generatePremiumApiKey(targetUser.username);
-                    } else if (targetRole === 'VIP User' && (!targetUser.apikey || targetUser.apikey.startsWith('xs-pedia'))) {
-                        targetUser.apikey = `${targetUser.username.toLowerCase()}-custom-vip`;
-                    }
-                    await targetUser.save();
-                    localTrx.itemDetails.upgradeProcessed = true;
-                }
-            }
-        }
-
-        await localTrx.save();
-        return res.json({
-            success: true,
-            data: {
-                orderId,
-                status: providerResult.status,
-                providerStatus: providerResult.provider || providerResult.status,
-                providerResponse: providerResult.raw || null,
-                amount: localTrx.amount,
-                paymentNumber: localTrx.paymentNumber,
-                expiredAt: localTrx.expiredAt,
-                qrisImage: localTrx.itemDetails?.qrisImage || null,
-                uniqueCode: localTrx.itemDetails?.uniqueCode || 0,
-                originalAmount: localTrx.itemDetails?.originalAmount || null,
-                paymentAmount: localTrx.itemDetails?.paymentAmount || null
-            }
-        });
-    } catch (error) {
-        console.error('Error XS-Pedia direct status:', error.response?.data || error.message);
-        return res.status(500).json({
-            success: false,
-            status: false,
-            message: error.response?.data?.message || error.message || 'Gagal mengecek status XS-Pedia'
-        });
-    }
-});
-
 app.get('/transactions/:orderId', async (req, res) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
@@ -1056,20 +950,49 @@ app.get('/transactions/:orderId', async (req, res) => {
     try {
         const { orderId } = req.params;
         const localTrx = await Transaction.findOne({ orderId });
-        if (!localTrx) return res.status(404).json({ error: "TRANSACTION_NOT_FOUND", message: "Transaksi tidak ditemukan" });
+        if (!localTrx) {
+            return res.status(404).json({
+                error: "TRANSACTION_NOT_FOUND",
+                message: "Transaksi tidak ditemukan"
+            });
+        }
 
+        // Sumber kebenaran status pembayaran adalah XS-Pedia.
+        // Selalu cek provider selama transaksi belum final supaya status tidak
+        // berhenti di "pending" hanya karena nilai lokal belum diperbarui.
         let currentStatus = String(localTrx.status || 'pending').toLowerCase();
+        const providerId = localTrx.xsPediaId || localTrx.itemDetails?.xsPediaId;
 
-        if (!['cancelled', 'failed', 'success', 'paid', 'settlement', 'settled'].includes(currentStatus)) {
+        if (providerId) {
             try {
-                const providerResult = await syncTransactionStatusFromXsPedia(localTrx);
-                currentStatus = providerResult.status;
+                const statusJson = await xsPediaRequest('/deposit/status', { id: providerId });
+                const providerStatus = String(
+                    statusJson?.data?.status ??
+                    statusJson?.data?.payment_status ??
+                    statusJson?.status ??
+                    statusJson?.payment_status ??
+                    statusJson?.data?.data?.status ??
+                    ''
+                ).trim().toLowerCase();
+
+                console.log(`🔎 [XS-PEDIA STATUS] ${providerId}:`, providerStatus || '(kosong)');
+
+                if (["success", "paid", "settlement", "settled", "completed", "berhasil", "sukses"].includes(providerStatus)) {
+                    currentStatus = 'success';
+                } else if (["cancel", "cancelled", "failed", "expired", "expire", "gagal"].includes(providerStatus)) {
+                    currentStatus = 'cancelled';
+                } else if (providerStatus) {
+                    currentStatus = 'pending';
+                }
+
+                localTrx.status = currentStatus;
+                localTrx.updatedAt = new Date();
             } catch (providerErr) {
-                console.warn(`⚠️ XS-Pedia status check gagal untuk ${orderId}:`, providerErr.response?.data || providerErr.message);
+                console.warn(`⚠️ XS-Pedia status check gagal untuk ${orderId} (${providerId}):`, providerErr.response?.data || providerErr.message);
             }
         }
 
-        if (currentStatus === 'pending' && new Date() > new Date(localTrx.expiredAt)) {
+        if (currentStatus === 'pending' && localTrx.expiredAt && new Date() > new Date(localTrx.expiredAt)) {
             localTrx.status = 'cancelled';
             localTrx.updatedAt = new Date();
             await localTrx.save();
@@ -1077,55 +1000,84 @@ app.get('/transactions/:orderId', async (req, res) => {
             currentStatus = 'cancelled';
         }
 
-        const isSuccess = ['settlement', 'success', 'paid', 'settled'].includes(currentStatus);
+        const isSuccess = ['settlement', 'success', 'paid', 'settled', 'completed'].includes(currentStatus);
 
+        // Jalankan upgrade tepat sekali setelah provider menyatakan pembayaran sukses.
         if (isSuccess && !localTrx.itemDetails?.upgradeProcessed) {
-            const itemName = localTrx.itemDetails?.nama || '';
-            if (itemName.includes('Upgrade Role')) {
+            const itemName = String(localTrx.itemDetails?.nama || '');
+            if (itemName.toLowerCase().includes('upgrade role')) {
                 try {
                     const daysToAdd = Math.max(1, Number(localTrx.itemDetails?.qty) || 1);
                     const isVip = itemName.toLowerCase().includes('vip');
                     const targetRole = isVip ? 'VIP User' : 'Premium User';
+
+                    const buyerId = localTrx.buyerId || localTrx.itemDetails?.buyerId;
+                    const buyerEmail = localTrx.buyerEmail || localTrx.itemDetails?.buyerEmail;
+                    const buyerUsername = localTrx.buyerUsername || localTrx.itemDetails?.buyerUsername;
+
                     let targetUser = null;
+                    if (buyerId && mongoose.Types.ObjectId.isValid(String(buyerId))) {
+                        targetUser = await User.findById(buyerId);
+                    }
+                    if (!targetUser && buyerEmail) {
+                        targetUser = await User.findOne({ email: String(buyerEmail).toLowerCase().trim() });
+                    }
+                    if (!targetUser && buyerUsername) {
+                        targetUser = await User.findOne({ username: String(buyerUsername).toLowerCase().trim() });
+                    }
 
-                    const buyerId = localTrx.itemDetails?.buyerId;
-                    const buyerEmail = localTrx.itemDetails?.buyerEmail;
-                    const buyerUsername = localTrx.itemDetails?.buyerUsername;
+                    if (!targetUser && req.user?.id) {
+                        targetUser = await User.findById(req.user.id);
+                    }
 
-                    if (buyerId && mongoose.Types.ObjectId.isValid(buyerId)) targetUser = await User.findById(buyerId);
-                    if (!targetUser && buyerEmail) targetUser = await User.findOne({ email: buyerEmail.toLowerCase() });
-                    if (!targetUser && buyerUsername) targetUser = await User.findOne({ username: buyerUsername.toLowerCase() });
+                    if (!targetUser) {
+                        throw new Error('User pembeli tidak ditemukan di database MongoDB.');
+                    }
 
-                    if (targetUser) {
-                        let currentExpiry = (targetUser.roleExpiresAt && new Date(targetUser.roleExpiresAt) > new Date())
-                            ? new Date(targetUser.roleExpiresAt) : new Date();
-                        currentExpiry.setDate(currentExpiry.getDate() + daysToAdd);
-                        targetUser.role = targetRole;
-                        targetUser.roleExpiresAt = currentExpiry;
-                        if (targetRole === 'Premium User') {
-                            targetUser.apikey = generatePremiumApiKey(targetUser.username);
-                        } else if (targetRole === 'VIP User' && (!targetUser.apikey || targetUser.apikey.startsWith('xs-pedia'))) {
+                    let currentExpiry = (
+                        targetUser.roleExpiresAt && new Date(targetUser.roleExpiresAt) > new Date()
+                    ) ? new Date(targetUser.roleExpiresAt) : new Date();
+
+                    currentExpiry.setDate(currentExpiry.getDate() + daysToAdd);
+                    targetUser.role = targetRole;
+                    targetUser.roleExpiresAt = currentExpiry;
+
+                    // Premium mendapatkan key otomatis baru; VIP mempertahankan custom key jika ada.
+                    if (targetRole === 'Premium User') {
+                        targetUser.apikey = generatePremiumApiKey(targetUser.username);
+                    } else if (targetRole === 'VIP User') {
+                        if (!targetUser.apikey || targetUser.apikey.startsWith('xs-pedia')) {
                             targetUser.apikey = `${targetUser.username.toLowerCase()}-custom-vip`;
                         }
-                        await targetUser.save();
-                        localTrx.itemDetails.upgradeProcessed = true;
-                        localTrx.updatedAt = new Date();
-                        console.log(`🎉 [XS-PEDIA UPGRADE] ${targetUser.username} => ${targetRole} sampai ${currentExpiry.toISOString()}`);
-                    } else {
-                        console.warn(`⚠️ [XS-PEDIA UPGRADE] User tidak ditemukan untuk transaksi ${orderId}`);
                     }
+
+                    await targetUser.save();
+
+                    localTrx.itemDetails.upgradeProcessed = true;
+                    localTrx.itemDetails.upgradedUserId = String(targetUser._id);
+                    localTrx.itemDetails.upgradeProcessedAt = new Date().toISOString();
+                    localTrx.status = 'success';
+                    localTrx.updatedAt = new Date();
+
+                    console.log(`🎉 [XS-PEDIA UPGRADE] ${targetUser.username} => ${targetRole} sampai ${currentExpiry.toISOString()}`);
                 } catch (upgradeErr) {
+                    // Jangan mengubah success menjadi pending. Pembayaran sudah sukses;
+                    // error di sini hanya berarti sinkronisasi role belum selesai.
                     console.error('❌ Gagal memproses upgrade role:', upgradeErr.message);
                 }
             }
         }
 
         await localTrx.save();
-        if (isSuccess || ['failed', 'cancelled'].includes(currentStatus)) scheduleTransactionDeletion(orderId);
+        if (isSuccess || ['failed', 'cancelled'].includes(currentStatus)) {
+            scheduleTransactionDeletion(orderId);
+        }
 
         return res.json({
             data: {
                 orderId: localTrx.orderId,
+                // ID yang ditampilkan ke user berasal dari XS-Pedia, bukan orderId internal.
+                xsPediaId: localTrx.xsPediaId || localTrx.itemDetails?.xsPediaId || null,
                 status: currentStatus,
                 amount: localTrx.amount,
                 paymentNumber: localTrx.paymentNumber,
@@ -1138,17 +1090,25 @@ app.get('/transactions/:orderId', async (req, res) => {
     } catch (error) {
         console.error("Error Status XS-Pedia TRX:", error.message);
         const localTrx = await Transaction.findOne({ orderId: req.params.orderId });
-        if (localTrx) return res.json({ data: {
-            orderId: localTrx.orderId,
-            status: localTrx.status,
-            amount: localTrx.amount,
-            paymentNumber: localTrx.paymentNumber,
-            expiredAt: localTrx.expiredAt,
-            qrisImage: localTrx.itemDetails?.qrisImage || null,
-            qrisBackground: localTrx.itemDetails?.qrisBackground || null,
-            productLink: null
-        } });
-        return res.status(500).json({ error: "TRANSACTION_FETCH_FAILED", message: "Gagal mengambil status transaksi" });
+        if (localTrx) {
+            return res.json({
+                data: {
+                    orderId: localTrx.orderId,
+                    xsPediaId: localTrx.xsPediaId || localTrx.itemDetails?.xsPediaId || null,
+                    status: localTrx.status,
+                    amount: localTrx.amount,
+                    paymentNumber: localTrx.paymentNumber,
+                    expiredAt: localTrx.expiredAt,
+                    qrisImage: localTrx.itemDetails?.qrisImage || null,
+                    qrisBackground: localTrx.itemDetails?.qrisBackground || null,
+                    productLink: null
+                }
+            });
+        }
+        return res.status(500).json({
+            error: "TRANSACTION_FETCH_FAILED",
+            message: "Gagal mengambil status transaksi"
+        });
     }
 });
 
@@ -3843,14 +3803,12 @@ body:before{content:none !important;}
             <div class="profile-section-title">API Key</div>
             <div class="profile-key-box"><span id="userApiKey" class="profile-key">loading-key</span></div>
             <button onclick="copyText(document.getElementById('userApiKey').innerText, 'API Key')" class="profile-copy">SALIN API KEY</button>
-
-            <div id="vipCustomKeyBox" class="hidden mt-4">
-              <div class="profile-section-title">Custom API Key</div>
-              <p id="customApiKeyRoleHint" class="text-[11px] text-[#708078] mb-2">Tersedia untuk Premium dan VIP.</p>
-              <input type="text" id="customApiKeyInput" placeholder="Ketik Custom API Key..." autocomplete="off" class="w-full bg-[#fffefb] border border-[#cfe1cc] rounded-2xl px-4 py-3 text-sm text-[#4a5c51] outline-none">
+            <div id="vipCustomKeyBox" class="hidden mt-3">
+              <div class="text-[11px] font-bold tracking-wider uppercase text-[#65806e] mb-2">Custom API Key (Premium / VIP)</div>
+              <input type="text" id="customApiKeyInput" placeholder="Ketik Custom API Key..." class="w-full bg-[#fffefb] border border-[#cfe1cc] rounded-xl px-4 py-2.5 text-sm text-[#4a5c51] outline-none">
               <div class="flex gap-2 mt-2">
-                <button onclick="saveCustomApiKey()" class="profile-copy flex-1">SIMPAN</button>
-                <button onclick="cancelCustomApiKey()" class="profile-copy flex-1" style="background:#eef2ee!important;color:#496052!important;border-color:#cfe1cc!important;">BATAL</button>
+                <button onclick="saveCustomApiKey()" class="profile-copy mt-0 flex-1">SIMPAN</button>
+                <button onclick="cancelCustomApiKey()" class="profile-copy mt-0 flex-1 !bg-[#eef2ed] !text-[#607267]">BATAL</button>
               </div>
             </div>
           </div>
@@ -4360,17 +4318,12 @@ body:before{content:none !important;}
             } else if (role.includes('premium')) {
                 planText.textContent = 'PREM';
                 planText.setAttribute('fill', '#fbbf24');
-                if (vipCustomBox) vipCustomBox.classList.add('hidden');
+                if (vipCustomBox) vipCustomBox.classList.remove('hidden');
             } else {
                 planText.textContent = 'FREE';
                 planText.setAttribute('fill', '#34d399');
                 if (vipCustomBox) vipCustomBox.classList.add('hidden');
             }
-        }
-
-        function syncCustomApiKeyInput(value) {
-            const input = document.getElementById('customApiKeyInput');
-            if (input) input.value = value || '';
         }
 
         async function saveCustomApiKey() {
@@ -4380,20 +4333,19 @@ body:before{content:none !important;}
                 return;
             }
 
-            const cleanValue = input.value.trim();
             try {
                 const response = await fetch('/api/user/custom-apikey', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'same-origin',
-                    body: JSON.stringify({ customKey: cleanValue })
+                    body: JSON.stringify({ customKey: input.value.trim() })
                 });
 
                 const resData = await response.json();
                 if (resData.status) {
+                    alert(resData.message);
                     document.getElementById('userApiKey').innerText = resData.apikey;
-                    syncCustomApiKeyInput(resData.apikey);
-                    alert(resData.message || 'API Key berhasil diperbarui!');
+                    input.value = '';
                 } else {
                     alert(resData.message || 'Gagal mengubah API Key.');
                 }
@@ -4403,8 +4355,8 @@ body:before{content:none !important;}
         }
 
         function cancelCustomApiKey() {
-            const currentKey = document.getElementById('userApiKey')?.innerText || '';
-            syncCustomApiKeyInput(currentKey);
+            const input = document.getElementById('customApiKeyInput');
+            if (input) input.value = '';
         }
 
         async function uploadAvatarFile(input) {
@@ -4507,7 +4459,6 @@ function fetchUserProfile() {
                         
                         const userKey = data.user.apikey || '';
                         document.getElementById('userApiKey').innerText = userKey || 'No Key Found';
-                        syncCustomApiKeyInput(userKey);
                                                 
                         setRoleTheme(data.user.role || 'Free User');
 
