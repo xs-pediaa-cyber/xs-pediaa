@@ -1,126 +1,148 @@
-<!doctype html>
-<html lang="id">
+<!DOCTYPE html>
+<html lang="id" class="notranslate" translate="no">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8">
 <meta name="google" content="notranslate">
-<title>Masuk - XS-PEDIA API</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2339d353'/%3E%3Cpath d='M16 16l12 16-12 16M48 16L36 32l12 16' stroke='%2308110b' stroke-width='7' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>XS-PEDIA API - Login</title>
+<link rel="icon" href="https://arulz-xd.my.id/files/Q2C70y.png" type="image/png">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&display=swap');
-:root{--g:#39d353;--g2:#159438;--ink:#07110a;--paper:#f2ffe9;--yellow:#e8ff5a;--dark:#06130a}
-*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:'Comic Neue','Trebuchet MS',sans-serif;color:#efffe6;background:#06130a;background-image:radial-gradient(circle,#4eec63 1.3px,transparent 1.3px);background-size:20px 20px;display:grid;place-items:center;padding:22px;overflow-x:hidden}body:before{content:'';position:fixed;inset:0;pointer-events:none;opacity:.06;background:repeating-linear-gradient(135deg,transparent 0 13px,#fff 14px 16px)}
-.shell{width:min(100%,540px);position:relative;z-index:1}.brand{text-align:center;margin-bottom:16px}.brand h1{margin:0;font:clamp(2.5rem,11vw,4rem) 'Bangers',Impact,sans-serif;letter-spacing:2px;color:var(--g);text-shadow:4px 4px 0 var(--ink)}.brand p{margin:4px 0;color:#d9ffd3;font-weight:700}
-.card{background:var(--paper);color:var(--ink);border:4px solid var(--ink);box-shadow:9px 9px 0 var(--ink);border-radius:16px;padding:22px;position:relative;overflow:hidden}.card:before{content:'POW!';position:absolute;right:-5px;top:-15px;font:42px 'Bangers',Impact,sans-serif;color:var(--yellow);-webkit-text-stroke:2px var(--ink);transform:rotate(12deg)}
-.panel{display:none}.panel.active{display:block}.panel h2{margin:0 0 8px;font:34px 'Bangers',Impact,sans-serif;letter-spacing:1px}.desc{margin:0 0 18px;color:#27472e;font-weight:700}label{display:block;font-weight:800;font-size:.9rem;margin:13px 0 7px}input{width:100%;padding:12px 13px;font:700 1rem 'Comic Neue',sans-serif;border:3px solid var(--ink);border-radius:10px;background:#fff;box-shadow:3px 3px 0 var(--ink);color:var(--ink)}input:focus{outline:3px solid var(--yellow);outline-offset:1px}.btn{width:100%;border:3px solid var(--ink);border-radius:10px;padding:12px 14px;background:var(--g);color:var(--ink);font-weight:900;box-shadow:4px 4px 0 var(--ink);cursor:pointer;font-size:1rem;margin-top:16px}.btn.secondary{background:#fff}.btn:disabled{opacity:.55;cursor:not-allowed}.links{margin-top:14px;text-align:center;font-weight:800}.link{border:0;background:none;color:var(--g2);font-weight:900;cursor:pointer;text-decoration:underline;font-family:inherit}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.steps{display:flex;gap:8px;margin:0 0 16px}.step{flex:1;text-align:center;border:3px solid var(--ink);padding:8px 4px;background:#dfffd3;font-weight:900;font-size:.78rem}.step.active{background:var(--g)}.otp{letter-spacing:9px;text-align:center;font-size:1.7rem}.timer{margin:10px 0;font-weight:900;text-align:center;color:#4c6a52}.note{font-size:.8rem;margin-top:8px;color:#4c6a52}.tiny{font-size:.78rem}.msg{margin-top:12px;padding:10px 12px;border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);font-weight:800;display:none}.msg.show{display:block}.msg.error{background:#ffd7d7}.msg.ok{background:#d8ffd3}.badge{display:inline-block;background:#dfffd3;border:2px solid var(--ink);padding:4px 8px;border-radius:999px;font-size:.72rem;font-weight:900}.warn{font-size:.74rem;background:#fff7bd;border:2px solid var(--ink);padding:9px 10px;margin-top:12px;font-weight:800}
-@media(max-width:480px){.row{grid-template-columns:1fr}.card{padding:18px}.otp{letter-spacing:6px}}
+:root{--g:#39d353;--g2:#1fa83b;--dark:#102014;--paper:#f4ffe9;--ink:#07110a;--muted:#54705a;--red:#ff4d4d;--line:#07110a}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#b9e889;background-image:radial-gradient(#2d7a31 1.3px,transparent 1.3px);background-size:18px 18px;color:var(--ink);font-family:'Nunito',sans-serif}
+body:before,body:after{content:"";position:fixed;z-index:-1;width:280px;height:280px;background:#7ee35e;border:5px solid var(--line);border-radius:50%;opacity:.55}.before{display:none}body:before{top:-140px;left:-120px;transform:rotate(-8deg)}body:after{right:-150px;bottom:-140px;transform:rotate(10deg)}
+.wrap{max-width:520px;margin:0 auto;padding:24px 16px 40px}.brand{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.logo{font-family:'Bangers',cursive;font-size:38px;letter-spacing:1.5px;text-shadow:3px 3px 0 #fff}.tag{background:#fff;border:3px solid var(--line);padding:5px 9px;box-shadow:4px 4px 0 var(--line);font-weight:900;font-size:12px}
+.card{background:var(--paper);border:4px solid var(--line);box-shadow:9px 9px 0 var(--line);padding:22px;border-radius:16px;position:relative;overflow:hidden}.card:before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(135deg,transparent 0 14px,rgba(0,0,0,.035) 14px 16px)}
+.hero{position:relative;text-align:center;margin-bottom:15px}.burst{display:inline-block;background:var(--g);border:4px solid var(--line);padding:7px 15px;box-shadow:5px 5px 0 var(--line);font-family:'Bangers';font-size:26px;letter-spacing:1px;transform:rotate(-2deg)}.desc{margin:14px 0 20px;text-align:center;font-weight:800;color:var(--muted);font-size:14px}
+.panel{display:none;position:relative}.panel.active{display:block}.panel h2{font-family:'Bangers';font-size:31px;letter-spacing:1px;margin:4px 0 8px}.label{display:block;font-size:12px;font-weight:900;text-transform:uppercase;margin:13px 0 6px}.input-wrap{position:relative}.input{width:100%;padding:13px 14px;border:3px solid var(--line);background:#fff;border-radius:10px;outline:none;font:800 14px 'Nunito';box-shadow:3px 3px 0 var(--line)}.input:focus{border-color:var(--g2);box-shadow:4px 4px 0 var(--line)}.eye{position:absolute;right:6px;top:6px;height:40px;width:44px;border:0;background:transparent;cursor:pointer;font-size:19px}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btn{width:100%;margin-top:16px;padding:13px 15px;border:3px solid var(--line);background:var(--g);color:var(--ink);font-weight:900;font-size:14px;border-radius:10px;box-shadow:5px 5px 0 var(--line);cursor:pointer}.btn:hover{transform:translate(2px,2px);box-shadow:3px 3px 0 var(--line)}.btn.secondary{background:#fff}.links{text-align:center;margin-top:16px;font-weight:800;font-size:13px}.link{border:0;background:none;text-decoration:underline;font-weight:900;cursor:pointer;color:#126d24}.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:14px 0}.step{font-size:10px;font-weight:900;background:#fff;border:2px solid var(--line);padding:7px;text-align:center}.step.active{background:var(--g)}.otp{font-size:23px;letter-spacing:8px;text-align:center}.timer{text-align:center;margin-top:10px;font-weight:900}.msg{display:none;margin-top:12px;padding:10px;border:3px solid var(--line);background:#ffe8e8;font-weight:800}.msg.show{display:block}.msg.ok{background:#d9ffd0}.note{font-size:11px;font-weight:700;color:var(--muted);text-align:center}.mini{font-size:11px;font-weight:800;color:var(--muted);margin-top:5px}.phone-prefix{display:flex}.prefix{display:flex;align-items:center;justify-content:center;width:56px;background:#d8fbc9;border:3px solid var(--line);border-right:0;border-radius:10px 0 0 10px;font-weight:900}.phone-prefix .input{border-radius:0 10px 10px 0}.comic-note{margin-top:18px;padding:12px;border:3px dashed var(--line);background:#fff;font-weight:800;font-size:12px}.success-dot{color:#178b2b}
+@media(max-width:430px){.row{grid-template-columns:1fr}.logo{font-size:32px}.card{padding:18px}}
 </style>
 </head>
 <body>
-<div class="shell">
-  <div class="brand"><h1>XS-PEDIA API</h1><p>API cepat dengan gaya komik hijau.</p></div>
+<div class="wrap">
+  <div class="brand"><div class="logo">XS-PEDIA</div><div class="tag">API</div></div>
   <div class="card">
+    <div class="hero"><div class="burst">AUTH ZONE!</div><div class="desc">Masuk, daftar, atau reset password akun XS-PEDIA.</div></div>
+
     <section class="panel active" id="loginPanel">
-      <h2>MASUK!</h2><p class="desc">Masukkan akun, nomor telepon, dan kata sandi.</p>
-      <form id="loginForm">
-        <label>Username / Email</label><input name="identity" required autocomplete="username" placeholder="contoh: budi / budi@mail.com">
-        <label>Nomor Telepon</label><input name="phone" required inputmode="tel" autocomplete="tel" placeholder="08xxxxxxxxxx / 628xxxxxxxxxx">
-        <label>Kata Sandi</label><input name="password" type="password" required autocomplete="current-password" placeholder="Masukkan kata sandi">
-        <button class="btn" type="submit">MASUK KE PANEL</button>
+      <h2>MASUK!</h2>
+      <form id="loginForm" action="/auth/login" method="POST">
+        <label class="label" for="loginIdentity">Username atau Email</label>
+        <input class="input" id="loginIdentity" name="username" required autocomplete="username" placeholder="Username / Email">
+        <label class="label" for="loginPassword">Kata Sandi</label>
+        <div class="input-wrap">
+          <input class="input" id="loginPassword" type="password" name="password" required autocomplete="current-password" placeholder="Masukkan kata sandi" style="padding-right:54px">
+          <button class="eye" type="button" aria-label="Lihat kata sandi" data-eye="loginPassword">👁️</button>
+        </div>
+        <button class="btn" type="submit">MASUK</button>
       </form>
-      <div class="links"><button class="link" data-go="forgot">Lupa password?</button> &nbsp;•&nbsp; <button class="link" data-go="register">Daftar akun</button></div>
+      <div class="links">Belum punya akun? <button class="link" data-go="register">DAFTAR</button></div>
+      <div class="links"><button class="link" data-go="forgot">LUPA PASSWORD?</button></div>
     </section>
 
     <section class="panel" id="registerPanel">
-      <h2>DAFTAR!</h2><p class="desc">Buat akun baru. Setelah daftar, notifikasi otomatis dikirim ke WhatsApp owner melalui Fonnte.</p>
-      <form id="registerForm">
-        <label>Username</label><input name="username" required autocomplete="username" placeholder="pilih username">
-        <label>Email</label><input type="email" name="email" required autocomplete="email" placeholder="nama@email.com">
-        <label>Nomor Telepon</label><input name="phone" required inputmode="tel" autocomplete="tel" placeholder="08xxxxxxxxxx / 628xxxxxxxxxx">
-        <div class="row"><div><label>Password</label><input id="regPass" type="password" name="password" required autocomplete="new-password" placeholder="Buat password"></div><div><label>Ulangi Password</label><input id="regPass2" type="password" name="password_confirm" required autocomplete="new-password" placeholder="Ulangi password"></div></div>
+      <h2>DAFTAR AKUN!</h2>
+      <form id="registerForm" action="/auth/register" method="POST">
+        <label class="label" for="fullName">Nama Lengkap</label>
+        <input class="input" id="fullName" name="name" required autocomplete="name" placeholder="Nama lengkap">
+
+        <label class="label" for="regUsername">Username</label>
+        <input class="input" id="regUsername" name="username" required autocomplete="username" placeholder="Pilih username">
+
+        <label class="label" for="regEmail">Email</label>
+        <input class="input" id="regEmail" type="email" name="email" required autocomplete="email" placeholder="nama@email.com">
+
+        <label class="label" for="regPhone">Nomor Telepon</label>
+        <div class="phone-prefix"><span class="prefix">+62</span><input class="input" id="regPhone" name="phone" required inputmode="numeric" autocomplete="tel" placeholder="81234567890"></div>
+        <div class="mini">Wajib diawali kode negara 62. Contoh: <b>6281234567890</b>. Ketik tanpa tanda +.</div>
+
+        <div class="row">
+          <div><label class="label" for="regPass">Password</label><div class="input-wrap"><input class="input" id="regPass" type="password" name="password" required autocomplete="new-password" placeholder="Password" style="padding-right:54px"><button class="eye" type="button" data-eye="regPass">👁️</button></div></div>
+          <div><label class="label" for="regPass2">Ulangi</label><div class="input-wrap"><input class="input" id="regPass2" type="password" name="password_confirm" required autocomplete="new-password" placeholder="Ulangi" style="padding-right:54px"><button class="eye" type="button" data-eye="regPass2">👁️</button></div></div>
+        </div>
         <button class="btn" type="submit">BUAT AKUN</button>
       </form>
-      <div class="links"><button class="link" data-go="login">Kembali ke login</button></div>
+      <div class="links">Sudah punya akun? <button class="link" data-go="login">MASUK</button></div>
     </section>
 
     <section class="panel" id="forgotPanel">
-      <h2>LUPA PASSWORD!</h2><p class="desc">Kode OTP 6 digit dikirim ke nomor WhatsApp yang sudah terdaftar.</p>
+      <h2>LUPA PASSWORD!</h2>
+      <div class="desc">OTP dikirim ke WhatsApp nomor yang terdaftar.</div>
       <div class="steps"><div class="step active" id="s1">1. NOMOR</div><div class="step" id="s2">2. OTP</div><div class="step" id="s3">3. PASSWORD</div></div>
-      <form id="forgotPhoneForm">
-        <label>Nomor Telepon Terdaftar</label><input id="forgotPhone" required inputmode="tel" placeholder="08xxxxxxxxxx / 628xxxxxxxxxx">
+      <form id="forgotPhoneForm" action="/auth/forgot-password" method="POST">
+        <label class="label" for="forgotPhone">Nomor Telepon Terdaftar</label>
+        <div class="phone-prefix"><span class="prefix">+62</span><input class="input" id="forgotPhone" name="phone" required inputmode="numeric" placeholder="81234567890"></div>
         <button class="btn" type="submit">KIRIM OTP 6 DIGIT</button>
       </form>
       <form id="verifyOtpForm" style="display:none">
-        <label>OTP 6 Digit</label><input id="otp" inputmode="numeric" maxlength="6" minlength="6" class="otp" placeholder="000000" autocomplete="one-time-code">
+        <label class="label" for="otp">OTP 6 Digit</label><input class="input otp" id="otp" inputmode="numeric" maxlength="6" minlength="6" pattern="\d{6}" autocomplete="one-time-code" placeholder="000000">
         <div class="timer" id="timer">OTP berlaku 05:00</div>
         <div class="row"><button class="btn" type="submit">VERIFIKASI OTP</button><button class="btn secondary" type="button" id="resendBtn" disabled>KIRIM ULANG</button></div>
-        <p class="note">OTP berlaku 5 menit. Kirim ulang tersedia setelah 30 detik.</p>
+        <div class="note">OTP berlaku 5 menit. Resend aktif setelah 30 detik.</div>
       </form>
-      <form id="resetForm" style="display:none">
-        <label>Password Baru</label><input id="newPassword" type="password" required autocomplete="new-password" placeholder="Masukkan password baru">
-        <label>Ulangi Password Baru</label><input id="newPassword2" type="password" required autocomplete="new-password" placeholder="Ulangi password baru">
+      <form id="resetForm" action="/auth/reset-password" method="POST" style="display:none">
+        <input type="hidden" id="resetPhone" name="phone">
+        <input type="hidden" id="resetOtp" name="otp">
+        <label class="label" for="newPassword">Password Baru</label><div class="input-wrap"><input class="input" id="newPassword" type="password" name="password" required autocomplete="new-password" placeholder="Password baru" style="padding-right:54px"><button class="eye" type="button" data-eye="newPassword">👁️</button></div>
+        <label class="label" for="newPassword2">Ulangi Password Baru</label><div class="input-wrap"><input class="input" id="newPassword2" type="password" name="password_confirm" required autocomplete="new-password" placeholder="Ulangi password" style="padding-right:54px"><button class="eye" type="button" data-eye="newPassword2">👁️</button></div>
         <button class="btn" type="submit">SIMPAN PASSWORD BARU</button>
       </form>
       <div id="forgotMsg" class="msg"></div>
-      <div class="links"><button class="link" data-go="login">Kembali ke login</button></div>
+      <div class="links"><button class="link" data-go="login">KEMBALI KE LOGIN</button></div>
     </section>
+
+    <div class="comic-note"><span class="success-dot">●</span> Sistem login tetap memakai endpoint backend yang sudah ada. Tidak ada redirect paksa ke <b>home.html</b>; setelah submit, backend/JS kamu yang menentukan tujuan berikutnya.</div>
   </div>
 </div>
 <script>
-/* =========================================================
-   XS-PEDIA AUTH — HTML ONLY
-   Isi 2 nilai di bawah dengan kredensial Fonnte milik kamu.
-   Catatan: karena disimpan di HTML, token akan bisa dilihat
-   orang yang membuka source website. Fonnte sendiri tidak
-   merekomendasikan frontend untuk production.
-   ========================================================= */
-const FONNTE={
-  TOKEN:'ISI_TOKEN_FONNTE_DI_SINI',
-  OWNER_NUMBER:'628xxxxxxxxxx',
-  ENDPOINT:'https://api.fonnte.com/send'
-};
-const OTP_LIFETIME=5*60*1000;
-const RESEND_DELAY=30*1000;
-const USERS_KEY='xs_pedia_users_v1';
-const AUTH_KEY='xs_pedia_current_user_v1';
-let otpState={phone:'',codeHash:'',expiresAt:0,resendAt:0,verified:false};
-let timerId=null;
-
-const $=s=>document.querySelector(s);
-const panels={login:$('#loginPanel'),register:$('#registerPanel'),forgot:$('#forgotPanel')};
-function go(name){Object.values(panels).forEach(x=>x.classList.remove('active'));panels[name].classList.add('active');window.scrollTo({top:0,behavior:'smooth'});}
+const panels={login:document.getElementById('loginPanel'),register:document.getElementById('registerPanel'),forgot:document.getElementById('forgotPanel')};
+function go(name){Object.values(panels).forEach(p=>p.classList.remove('active'));panels[name].classList.add('active');window.scrollTo({top:0,behavior:'smooth'});}
 document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.go)));
-function swal(title,text,icon='info'){return Swal.fire({title,text,icon,confirmButtonText:'OK',confirmButtonColor:'#39d353',background:'#f2ffe9',color:'#07110a'});}
-function normalizePhone(v){let p=String(v||'').replace(/[^0-9]/g,'');if(p.startsWith('0'))p='62'+p.slice(1);if(!p.startsWith('62'))p='62'+p;return p;}
-function validPhone(v){return /^62\d{9,14}$/.test(normalizePhone(v));}
-function getUsers(){try{return JSON.parse(localStorage.getItem(USERS_KEY)||'[]')}catch{return[]}}
-function saveUsers(users){localStorage.setItem(USERS_KEY,JSON.stringify(users));}
-async function hash(text){const data=new TextEncoder().encode(text),buf=await crypto.subtle.digest('SHA-256',data);return [...new Uint8Array(buf)].map(x=>x.toString(16).padStart(2,'0')).join('');}
-function randomOtp(){return String(Math.floor(100000+Math.random()*900000));}
-async function sendFonnte(target,message){
-  if(!FONNTE.TOKEN||FONNTE.TOKEN==='ISI_TOKEN_FONNTE_DI_SINI')throw new Error('Token Fonnte belum diisi di bagian FONNTE pada login.html.');
-  const fd=new FormData();fd.append('target',normalizePhone(target));fd.append('message',message);fd.append('countryCode','62');
-  const r=await fetch(FONNTE.ENDPOINT,{method:'POST',mode:'cors',headers:{Authorization:FONNTE.TOKEN},body:fd});
-  let j={};try{j=await r.json()}catch{}
-  if(!r.ok||j.status===false)throw new Error(j.reason||j.message||'Gagal mengirim WhatsApp lewat Fonnte.');
-  return j;
-}
-function setStep(n){['s1','s2','s3'].forEach((id,i)=>$( '#'+id).classList.toggle('active',i<n));}
-function showMsg(text,ok=false){const el=$('#forgotMsg');el.textContent=text;el.className='msg show '+(ok?'ok':'error');}
-function startTimer(){clearInterval(timerId);timerId=setInterval(()=>{const now=Date.now(),left=Math.max(0,otpState.expiresAt-now),sec=Math.ceil(left/1000);$('#timer').textContent='OTP berlaku '+String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');const rleft=Math.max(0,otpState.resendAt-now),rb=$('#resendBtn');rb.disabled=rleft>0||left<=0;rb.textContent=rleft>0?'KIRIM ULANG ('+Math.ceil(rleft/1000)+'s)':'KIRIM ULANG';if(left<=0){clearInterval(timerId);showMsg('OTP sudah kedaluwarsa. Silakan kirim ulang OTP.');}},250);}
 
-$('#loginForm').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.currentTarget),identity=String(f.get('identity')).trim().toLowerCase(),phone=normalizePhone(f.get('phone')),password=String(f.get('password'));if(!validPhone(phone))return swal('Nomor tidak valid','Gunakan format 08xxxxxxxxxx atau 628xxxxxxxxxx.','error');const users=getUsers(),u=users.find(x=>(x.username.toLowerCase()===identity||x.email.toLowerCase()===identity)&&x.phone===phone);if(!u)return swal('Login gagal','Akun, nomor telepon, atau password tidak cocok.','error');if(await hash(password)!==u.passwordHash)return swal('Login gagal','Akun, nomor telepon, atau password tidak cocok.','error');localStorage.setItem(AUTH_KEY,JSON.stringify({username:u.username,phone:u.phone,loginAt:Date.now()}));await swal('Berhasil!','Login berhasil.','success');window.location.href='home.html';});
+document.querySelectorAll('[data-eye]').forEach(btn=>btn.addEventListener('click',()=>{const input=document.getElementById(btn.dataset.eye);input.type=input.type==='password'?'text':'password';btn.textContent=input.type==='password'?'👁️':'🙈';}));
 
-$('#registerForm').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.currentTarget),username=String(f.get('username')).trim(),email=String(f.get('email')).trim().toLowerCase(),phone=normalizePhone(f.get('phone')),password=String(f.get('password')),confirm=String(f.get('password_confirm'));if(username.length<3)return swal('Username kurang','Minimal 3 karakter.','error');if(!validPhone(phone))return swal('Nomor tidak valid','Gunakan format 08xxxxxxxxxx atau 628xxxxxxxxxx.','error');if(password.length<6)return swal('Password kurang','Password minimal 6 karakter.','error');if(password!==confirm)return swal('Password beda','Password dan ulangi password harus sama.','error');const users=getUsers();if(users.some(x=>x.username.toLowerCase()===username.toLowerCase()))return swal('Username terpakai','Gunakan username lain.','error');if(users.some(x=>x.email===email))return swal('Email terpakai','Email tersebut sudah terdaftar.','error');if(users.some(x=>x.phone===phone))return swal('Nomor terpakai','Nomor tersebut sudah terdaftar.','error');const user={username,email,phone,passwordHash:await hash(password),createdAt:Date.now()};users.push(user);saveUsers(users);try{await sendFonnte(FONNTE.OWNER_NUMBER,'📢 XS-PEDIA - REGISTRASI BARU\nUsername: '+username+'\nEmail: '+email+'\nNomor: '+phone+'\nWaktu: '+new Date().toLocaleString('id-ID'));await swal('Akun dibuat!','Pendaftaran berhasil dan notifikasi WhatsApp sudah dikirim.','success');}catch(err){await swal('Akun dibuat','Akun tersimpan, tetapi notifikasi Fonnte gagal: '+err.message,'warning');}e.currentTarget.reset();go('login');});
+function normalize62(value){let p=String(value||'').replace(/\D/g,'');if(p.startsWith('0'))p='62'+p.slice(1);if(p.startsWith('8'))p='62'+p;return p;}
+function valid62(value){return /^62\d{9,14}$/.test(value);}
+function showMsg(text,ok=false){const el=document.getElementById('forgotMsg');el.textContent=text;el.className='msg show '+(ok?'ok':'');}
 
-async function sendOtp(){const phone=normalizePhone($('#forgotPhone').value);if(!validPhone(phone))return showMsg('Masukkan nomor telepon yang valid.');const user=getUsers().find(x=>x.phone===phone);if(!user)return showMsg('Nomor telepon tidak ditemukan.');const code=randomOtp();try{await sendFonnte(phone,'🔐 XS-PEDIA - KODE OTP\nKode reset password kamu: '+code+'\nBerlaku 5 menit.\nJangan bagikan kode ini kepada siapa pun.');otpState={phone,codeHash:await hash(code),expiresAt:Date.now()+OTP_LIFETIME,resendAt:Date.now()+RESEND_DELAY,verified:false};$('#forgotPhoneForm').style.display='none';$('#verifyOtpForm').style.display='block';$('#resetForm').style.display='none';setStep(2);showMsg('OTP 6 digit sudah dikirim ke WhatsApp nomor terdaftar.',true);startTimer();}catch(err){showMsg(err.message);}}
-$('#forgotPhoneForm').addEventListener('submit',async e=>{e.preventDefault();await sendOtp()});
-$('#resendBtn').addEventListener('click',async()=>{if(Date.now()<otpState.resendAt)return;await sendOtp()});
-$('#verifyOtpForm').addEventListener('submit',async e=>{e.preventDefault();const otp=$('#otp').value.trim();if(Date.now()>otpState.expiresAt)return showMsg('OTP sudah kedaluwarsa. Kirim ulang OTP.');if(!/^\d{6}$/.test(otp))return showMsg('OTP harus tepat 6 digit.');if(await hash(otp)!==otpState.codeHash)return showMsg('OTP salah.');otpState.verified=true;clearInterval(timerId);$('#verifyOtpForm').style.display='none';$('#resetForm').style.display='block';setStep(3);showMsg('OTP benar. Sekarang masukkan password baru.',true);});
-$('#resetForm').addEventListener('submit',async e=>{e.preventDefault();if(!otpState.verified)return showMsg('Verifikasi OTP terlebih dahulu.');const p=$('#newPassword').value,p2=$('#newPassword2').value;if(p.length<6)return showMsg('Password baru minimal 6 karakter.');if(p!==p2)return showMsg('Konfirmasi password tidak sama.');const users=getUsers(),idx=users.findIndex(x=>x.phone===otpState.phone);if(idx<0)return showMsg('Akun tidak ditemukan.');users[idx].passwordHash=await hash(p);users[idx].updatedAt=Date.now();saveUsers(users);otpState={phone:'',codeHash:'',expiresAt:0,resendAt:0,verified:false};$('#resetForm').reset();$('#verifyOtpForm').reset();$('#forgotPhoneForm').reset();$('#verifyOtpForm').style.display='none';$('#resetForm').style.display='none';$('#forgotPhoneForm').style.display='block';setStep(1);clearInterval(timerId);await swal('Password diperbarui!','Password baru berhasil disimpan. Silakan login kembali.','success');go('login');});
+// Jangan intercept login: biarkan endpoint /auth/login + JS/backend lama menangani session dan redirect.
+// Hanya normalisasi data sebelum submit register/forgot agar field phone konsisten 62.
+document.getElementById('registerForm').addEventListener('submit',async e=>{
+ const phoneInput=document.getElementById('regPhone'); const email=document.getElementById('regEmail').value.trim().toLowerCase();
+ phoneInput.value=normalize62(phoneInput.value);
+ if(!/^\d+$/.test(phoneInput.value)||!phoneInput.value.startsWith('62')){e.preventDefault();return Swal.fire({title:'Nomor tidak valid',text:'Nomor wajib menggunakan kode negara 62.',icon:'error',confirmButtonColor:'#39d353'});}
+ if(!valid62(phoneInput.value)){e.preventDefault();return Swal.fire({title:'Nomor tidak valid',text:'Contoh yang benar: 6281234567890.',icon:'error',confirmButtonColor:'#39d353'});}
+ if(document.getElementById('regPass').value!==document.getElementById('regPass2').value){e.preventDefault();return Swal.fire({title:'Password berbeda',text:'Ulangi password harus sama.',icon:'error',confirmButtonColor:'#39d353'});}
+ // Endpoint opsional untuk pengecekan duplikat MongoDB melalui backend.
+ // Jika route tersedia, register dihentikan ketika email/nomor sudah ada.
+ try{
+   const r=await fetch('/api/auth/check-user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,phone:phoneInput.value})});
+   if(r.ok){const d=await r.json();if(d.exists||d.emailExists||d.phoneExists){e.preventDefault();const reason=d.phoneExists?'Nomor telepon sudah terdaftar.':d.emailExists?'Email sudah terdaftar.':'Email atau nomor telepon sudah terdaftar.';return Swal.fire({title:'Data sudah terdaftar',text:reason,icon:'error',confirmButtonColor:'#39d353'});}}
+ }catch(_){/* route check tidak tersedia: lanjut ke endpoint register lama */}
+});
 
-window.addEventListener('load',()=>{const t=document.createElement('div');t.className='warn';t.innerHTML='<span class="badge">HTML ONLY</span> Sistem auth disimpan di browser. Untuk production multi-device, gunakan database + backend.';document.querySelector('.card').appendChild(t);});
+document.getElementById('forgotPhoneForm').addEventListener('submit',e=>{
+ const input=document.getElementById('forgotPhone');input.value=normalize62(input.value);
+ if(!valid62(input.value)){e.preventDefault();showMsg('Nomor wajib menggunakan kode negara 62.');return;}
+});
+
+let otpTimer=null,resendUntil=0,expiresAt=0;
+document.getElementById('verifyOtpForm').addEventListener('submit',e=>{
+ e.preventDefault();const otp=document.getElementById('otp').value.trim();
+ if(!/^\d{6}$/.test(otp))return showMsg('OTP harus tepat 6 digit.');
+ if(Date.now()>expiresAt)return showMsg('OTP sudah kedaluwarsa. Silakan kirim ulang OTP.');
+ document.getElementById('resetOtp').value=otp;document.getElementById('resetPhone').value=normalize62(document.getElementById('forgotPhone').value);
+ document.getElementById('verifyOtpForm').style.display='none';document.getElementById('resetForm').style.display='block';document.getElementById('s2').classList.remove('active');document.getElementById('s3').classList.add('active');showMsg('OTP diterima. Masukkan password baru.',true);
+});
+
+// Backend lama tetap menjadi sumber pengiriman OTP. Event ini hanya menyiapkan timer UI
+// ketika halaman dipakai untuk verifikasi OTP tanpa mengubah struktur submit backend.
+function startOtpUiTimer(){clearInterval(otpTimer);expiresAt=Date.now()+5*60*1000;resendUntil=Date.now()+30*1000;otpTimer=setInterval(()=>{const left=Math.max(0,expiresAt-Date.now()),r=Math.max(0,resendUntil-Date.now());const s=Math.ceil(left/1000),rs=Math.ceil(r/1000);document.getElementById('timer').textContent='OTP berlaku '+String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');const rb=document.getElementById('resendBtn');rb.disabled=r>0||left<=0;rb.textContent=r>0?'KIRIM ULANG ('+rs+'s)':'KIRIM ULANG';if(left<=0){clearInterval(otpTimer);showMsg('OTP kedaluwarsa. Kirim ulang OTP.');}},250);}
+document.getElementById('resendBtn').addEventListener('click',()=>{if(Date.now()<resendUntil)return;document.getElementById('forgotPhoneForm').style.display='block';document.getElementById('verifyOtpForm').style.display='none';document.getElementById('resetForm').style.display='none';document.getElementById('s1').classList.add('active');document.getElementById('s2').classList.remove('active');document.getElementById('s3').classList.remove('active');showMsg('Silakan kirim ulang OTP dari nomor terdaftar.');});
+
+// Dukungan jika backend lama memberi query ?otpSent=1 setelah mengirim OTP.
+const qs=new URLSearchParams(location.search);if(qs.get('otpSent')==='1'){document.getElementById('forgotPhoneForm').style.display='none';document.getElementById('verifyOtpForm').style.display='block';document.getElementById('s1').classList.remove('active');document.getElementById('s2').classList.add('active');startOtpUiTimer();showMsg('OTP 6 digit sudah dikirim ke WhatsApp.',true);}
 </script>
 </body>
 </html>
