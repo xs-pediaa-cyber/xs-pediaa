@@ -113,7 +113,8 @@ const userSchema = new mongoose.Schema({
     phoneVerifiedAt: { type: Date, default: null },
     phoneOtpHash: { type: String, default: null },
     phoneOtpExpiresAt: { type: Date, default: null },
-    phoneOtpAttempts: { type: Number, default: 0 }
+    phoneOtpAttempts: { type: Number, default: 0 },
+    pendingPhoneNumber: { type: String, default: null }
 });
 
 // Middleware Otomatis Update API Key saat Role Berubah jika tidak ditentukan khusus
@@ -2216,7 +2217,9 @@ app.post('/api/profile/update', checkAuthSession, async (req, res) => {
         const emailChanged = user.email !== email;
         user.username = username;
         user.email = email;
-        if (usernameChanged && String(user.role).toLowerCase().includes('premium')) {
+        // Jangan mengganti API key yang sudah custom/tersimpan di MongoDB saat username berubah.
+        // API key hanya digenerate otomatis bila user Premium belum memiliki key yang valid.
+        if (usernameChanged && String(user.role).toLowerCase().includes('premium') && !user.apikey) {
             user.apikey = generatePremiumApiKey(username);
         }
         await user.save();
@@ -2245,20 +2248,49 @@ app.post('/api/profile/send-phone-otp', checkAuthSession, async (req, res) => {
         const user = await User.findById(req.user.id || req.user._id);
         if (!user) return res.status(404).json({ status: false, message: 'User tidak ditemukan!' });
 
+        // Jika nomor sudah terdaftar dan berbeda, nomor lama tetap aman sampai nomor baru diverifikasi.
+        const existingVerifiedPhone = normalizePhoneNumber(user.phoneNumber);
+        const isChangingNumber = Boolean(existingVerifiedPhone && existingVerifiedPhone !== phone);
+
         const otp = issuePhoneOtp();
-        user.phoneNumber = phone;
-        user.phoneVerified = false;
-        user.phoneVerifiedAt = null;
+        user.pendingPhoneNumber = phone;
         user.phoneOtpHash = crypto.createHash('sha256').update(otp).digest('hex');
         user.phoneOtpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
         user.phoneOtpAttempts = 0;
         await user.save();
 
-        const result = await sendFonnteMessage(phone, `Kode verifikasi nomor Anda: ${otp}\nBerlaku 5 menit. Jangan berikan kode ini kepada siapa pun.`);
-        if (!result.status) return res.status(502).json({ status: false, message: 'Gagal mengirim OTP ke WhatsApp.' });
+        const otpMessage = [
+            '🔐 *VERIFIKASI NOMOR XS-PEDIA*',
+            '',
+            `Halo ${user.username || 'User'} 👋`,
+            isChangingNumber ? 'Kami menerima permintaan untuk mengganti nomor WhatsApp akun kamu.' : 'Kami menerima permintaan verifikasi nomor WhatsApp akun kamu.',
+            '',
+            `🔢 *Kode OTP:* ${otp}`,
+            '⏳ *Berlaku:* 5 menit',
+            '',
+            '⚠️ Jangan bagikan kode ini kepada siapa pun.',
+            'Jika kamu tidak merasa meminta kode ini, abaikan pesan ini.'
+        ].join('\n');
 
-        console.log(`📞 [PHONE OTP] User=${user.username} PHONE=${phone} OTP terkirim.`);
-        res.json({ status: true, message: 'OTP 6 digit berhasil dikirim ke WhatsApp Anda.' });
+        const result = await sendFonnteMessage(phone, otpMessage);
+        if (!result.status) {
+            user.pendingPhoneNumber = null;
+            user.phoneOtpHash = null;
+            user.phoneOtpExpiresAt = null;
+            user.phoneOtpAttempts = 0;
+            await user.save();
+            return res.status(502).json({ status: false, message: 'Gagal mengirim OTP ke WhatsApp. Silakan coba lagi.' });
+        }
+
+        console.log(`📞 [PHONE OTP] User=${user.username} PHONE_BARU=${phone} EXISTING=${user.phoneNumber || '-'} OTP terkirim.`);
+        res.json({
+            status: true,
+            phoneNumber: phone,
+            expiresIn: 300,
+            message: isChangingNumber
+                ? 'OTP sudah dikirim ke nomor baru kamu. Nomor lama tetap tersimpan sampai OTP berhasil diverifikasi. Kode berlaku 5 menit.'
+                : 'OTP verifikasi sudah dikirim ke WhatsApp kamu. Masukkan 6 digit kode tersebut dalam 5 menit.'
+        });
     } catch (error) {
         console.error('❌ Gagal kirim OTP nomor:', error.message);
         res.status(500).json({ status: false, message: 'Gagal mengirim OTP.' });
@@ -2273,29 +2305,46 @@ app.post('/api/profile/verify-phone', checkAuthSession, async (req, res) => {
 
         const user = await User.findById(req.user.id || req.user._id);
         if (!user) return res.status(404).json({ status: false, message: 'User tidak ditemukan!' });
-        if (!user.phoneNumber) return res.status(400).json({ status: false, message: 'Belum ada nomor yang meminta verifikasi.' });
+        if (!user.pendingPhoneNumber) return res.status(400).json({ status: false, message: 'Belum ada permintaan verifikasi nomor baru.' });
         if (!user.phoneOtpHash || !user.phoneOtpExpiresAt || new Date() > new Date(user.phoneOtpExpiresAt)) {
-            return res.status(400).json({ status: false, message: 'OTP sudah kedaluwarsa. Minta OTP baru.' });
+            return res.status(400).json({ status: false, message: 'OTP sudah kedaluwarsa. Silakan minta OTP baru.' });
         }
 
         user.phoneOtpAttempts = Number(user.phoneOtpAttempts || 0) + 1;
         const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
         if (otpHash !== user.phoneOtpHash) {
             await user.save();
-            return res.status(400).json({ status: false, message: 'OTP salah.' });
+            return res.status(400).json({ status: false, message: 'OTP salah. Periksa kembali 6 digit kode yang dikirim.' });
         }
 
+        const oldPhone = user.phoneNumber || null;
+        const verifiedPhone = user.pendingPhoneNumber;
+        user.phoneNumber = verifiedPhone;
         user.phoneVerified = true;
         user.phoneVerifiedAt = new Date();
+        user.pendingPhoneNumber = null;
         user.phoneOtpHash = null;
         user.phoneOtpExpiresAt = null;
         user.phoneOtpAttempts = 0;
         await user.save();
 
-        const ownerMessage = `📱 VERIFIKASI NOMOR BERHASIL\n\n👤 Username: ${user.username}\n📧 Email: ${user.email}\n📞 Nomor: ${user.phoneNumber}\n🕒 Waktu: ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}`;
+        const ownerMessage = [
+            '📱 *VERIFIKASI NOMOR BERHASIL*',
+            '',
+            `👤 Username: ${user.username}`,
+            `📧 Email: ${user.email}`,
+            `📞 Nomor Baru: ${user.phoneNumber}`,
+            `📞 Nomor Lama: ${oldPhone || '-'}`,
+            `🕒 Waktu: ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}`
+        ].join('\n');
         if (FONNTE_OWNER_NUMBER) await sendFonnteMessage(FONNTE_OWNER_NUMBER, ownerMessage);
 
-        res.json({ status: true, message: 'Nomor WhatsApp berhasil diverifikasi!', phoneNumber: user.phoneNumber, phoneVerified: true });
+        res.json({
+            status: true,
+            message: '✅ Nomor WhatsApp berhasil diverifikasi dan disimpan ke akun kamu.',
+            phoneNumber: user.phoneNumber,
+            phoneVerified: true
+        });
     } catch (error) {
         console.error('❌ Gagal verifikasi nomor:', error.message);
         res.status(500).json({ status: false, message: 'Gagal memverifikasi nomor.' });
@@ -4025,11 +4074,19 @@ body:before{content:none !important;}
           <div class="profile-section">
             <div class="profile-section-title">Verifikasi Nomor WhatsApp</div>
             <div class="profile-key-box">
+              <div class="text-[10px] text-[#7a8a82] mb-2">Nomor yang tampil di bawah diambil langsung dari database akun.</div>
               <input id="phoneNumberInput" type="tel" placeholder="Contoh: 628123456789" class="w-full bg-transparent border-b border-[#d6e5d1] px-1 py-2 text-sm outline-none mb-2">
-              <button onclick="sendPhoneOtp()" id="sendPhoneOtpBtn" class="profile-copy">KIRIM OTP 6 DIGIT</button>
-              <div id="phoneOtpBox" class="hidden mt-2">
+              <button onclick="sendPhoneOtp()" id="sendPhoneOtpBtn" class="profile-copy">KIRIM / GANTI NOMOR</button>
+              <div id="phoneOtpBox" class="hidden mt-3">
+                <div id="phoneOtpNotice" class="rounded-xl border border-[#cfe1cc] bg-[#f4faf1] px-3 py-3 text-[11px] text-[#52645a] leading-relaxed mb-2">
+                  🔐 OTP 6 digit telah dikirim. Masukkan kode sebelum waktunya habis.
+                </div>
                 <input id="phoneOtpInput" inputmode="numeric" maxlength="6" placeholder="Masukkan OTP 6 digit" class="w-full bg-transparent border-b border-[#d6e5d1] px-1 py-2 text-sm outline-none mb-2">
-                <button onclick="verifyPhoneOtp()" class="profile-copy">VERIFIKASI NOMOR</button>
+                <div class="flex gap-2">
+                  <button onclick="verifyPhoneOtp()" id="verifyPhoneOtpBtn" class="profile-copy flex-1">VERIFIKASI</button>
+                  <button onclick="resendPhoneOtp()" id="resendPhoneOtpBtn" class="profile-copy flex-1 !bg-[#eef2ed] !text-[#607267]" disabled>REQUEST ULANG</button>
+                </div>
+                <div id="phoneOtpCountdown" class="text-[11px] mt-2 text-center font-bold text-[#65806e]">OTP berlaku 05:00</div>
               </div>
               <div id="phoneVerifyStatus" class="text-[11px] mt-2 font-bold text-[#607267]">Belum diverifikasi</div>
             </div>
@@ -4812,9 +4869,38 @@ body:before{content:none !important;}
             } catch (e) { alert('Gagal menyimpan profil.'); }
         }
 
-        async function sendPhoneOtp() {
+        let phoneOtpCountdownTimer = null;
+        let phoneOtpExpiresAtMs = 0;
+        let phoneOtpLastNumber = '';
+
+        function startPhoneOtpCountdown(seconds) {
+            if (phoneOtpCountdownTimer) clearInterval(phoneOtpCountdownTimer);
+            phoneOtpExpiresAtMs = Date.now() + (Number(seconds || 300) * 1000);
+            const countdownEl = document.getElementById('phoneOtpCountdown');
+            const resendBtn = document.getElementById('resendPhoneOtpBtn');
+            if (resendBtn) resendBtn.disabled = true;
+
+            const tick = () => {
+                const remaining = Math.max(0, phoneOtpExpiresAtMs - Date.now());
+                const totalSeconds = Math.ceil(remaining / 1000);
+                const minutes = Math.floor(totalSeconds / 60);
+                const secs = totalSeconds % 60;
+                if (countdownEl) countdownEl.textContent = remaining > 0
+                    ? 'OTP berlaku ' + String(minutes).padStart(2,'0') + ':' + String(secs).padStart(2,'0')
+                    : 'OTP sudah kedaluwarsa. Silakan request ulang.';
+                if (remaining <= 0) {
+                    clearInterval(phoneOtpCountdownTimer);
+                    phoneOtpCountdownTimer = null;
+                    if (resendBtn) resendBtn.disabled = false;
+                }
+            };
+            tick();
+            phoneOtpCountdownTimer = setInterval(tick, 1000);
+        }
+
+        async function sendPhoneOtp(forceNumber = null) {
             const input = document.getElementById('phoneNumberInput');
-            const phone = input?.value.trim();
+            const phone = String(forceNumber || input?.value || '').trim();
             if (!phone) return alert('Masukkan nomor WhatsApp terlebih dahulu.');
             const btn = document.getElementById('sendPhoneOtpBtn');
             if (btn) btn.disabled = true;
@@ -4824,27 +4910,51 @@ body:before{content:none !important;}
                     body: JSON.stringify({ phoneNumber: phone })
                 });
                 const data = await response.json();
-                alert(data.message || 'OTP diproses.');
-                if (data.status) document.getElementById('phoneOtpBox')?.classList.remove('hidden');
-            } catch (e) { alert('Gagal mengirim OTP.'); }
-            finally { if (btn) btn.disabled = false; }
+                if (!response.ok || !data.status) throw new Error(data.message || 'Gagal mengirim OTP.');
+                phoneOtpLastNumber = data.phoneNumber || phone;
+                document.getElementById('phoneOtpBox')?.classList.remove('hidden');
+                const notice = document.getElementById('phoneOtpNotice');
+                if (notice) notice.innerHTML = '✅ <b>OTP berhasil dikirim.</b><br>Kode verifikasi 6 digit sudah dikirim ke <b>' + phoneOtpLastNumber + '</b>. OTP berlaku 5 menit. Nomor lama tetap aman sampai verifikasi berhasil.';
+                startPhoneOtpCountdown(data.expiresIn || 300);
+                const otpInput = document.getElementById('phoneOtpInput');
+                if (otpInput) { otpInput.value = ''; otpInput.focus(); }
+            } catch (e) {
+                alert(e.message || 'Gagal mengirim OTP.');
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        async function resendPhoneOtp() {
+            const number = phoneOtpLastNumber || document.getElementById('phoneNumberInput')?.value.trim();
+            if (!number) return alert('Masukkan nomor WhatsApp terlebih dahulu.');
+            await sendPhoneOtp(number);
         }
 
         async function verifyPhoneOtp() {
             const otp = document.getElementById('phoneOtpInput')?.value.trim();
             if (!/^\d{6}$/.test(otp)) return alert('Masukkan OTP 6 digit.');
+            const btn = document.getElementById('verifyPhoneOtpBtn');
+            if (btn) btn.disabled = true;
             try {
                 const response = await fetch('/api/profile/verify-phone', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
                     body: JSON.stringify({ otp })
                 });
                 const data = await response.json();
-                alert(data.message || 'Selesai');
-                if (data.status) {
-                    document.getElementById('phoneVerifyStatus').textContent = '✅ Nomor terverifikasi';
-                    document.getElementById('phoneOtpBox')?.classList.add('hidden');
-                }
-            } catch (e) { alert('Gagal memverifikasi nomor.'); }
+                if (!response.ok || !data.status) throw new Error(data.message || 'Gagal memverifikasi nomor.');
+                if (phoneOtpCountdownTimer) clearInterval(phoneOtpCountdownTimer);
+                phoneOtpCountdownTimer = null;
+                document.getElementById('phoneVerifyStatus').textContent = '✅ Nomor terverifikasi: ' + (data.phoneNumber || '');
+                document.getElementById('phoneNumberInput').value = data.phoneNumber || '';
+                document.getElementById('phoneOtpBox')?.classList.add('hidden');
+                alert('✅ Nomor berhasil diverifikasi dan tersimpan di database.');
+                fetchUserProfile();
+            } catch (e) {
+                alert(e.message || 'Gagal memverifikasi nomor.');
+            } finally {
+                if (btn) btn.disabled = false;
+            }
         }
 
 function fetchUserProfile() {
@@ -4870,7 +4980,9 @@ function fetchUserProfile() {
                         if (editUsername) editUsername.value = data.user.username || '';
                         if (editEmail) editEmail.value = data.user.email || '';
                         if (phoneInput) phoneInput.value = data.user.phoneNumber || '';
-                        if (phoneStatus) phoneStatus.textContent = data.user.phoneVerified ? '✅ Nomor terverifikasi' : 'Belum diverifikasi';
+                        if (phoneStatus) phoneStatus.textContent = data.user.phoneVerified
+                            ? '✅ Nomor terverifikasi: ' + (data.user.phoneNumber || '')
+                            : (data.user.phoneNumber ? '⚠️ Nomor terdaftar, belum terverifikasi' : 'Belum diverifikasi');
                                                 
                         setRoleTheme(data.user.role || 'Free User');
 
