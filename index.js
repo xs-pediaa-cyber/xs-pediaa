@@ -873,7 +873,22 @@ app.post('/transactions', async (req, res) => {
         const qrisNumber = qrisData.payment_number || qrisData.paymentNumber || qrisData.qr_string || qrisData.qrString || qrisData.qr_url || qrisData.qrUrl;
         const qrisImage = qrisData.qr_image || qrisData.qrImage || null;
         const qrisBackground = qrisData.background || qrisData.qr_background || qrisData.qrBackground || null;
-        const xspediaId = qrisData.id || qrisData.transaction_id || qrisData.transactionId || qrisData.trx_id || qrisData.trxId || null;
+
+        // XS-Pedia dapat mengembalikan ID pada beberapa bentuk respons.
+        // Cari ID secara berurutan, termasuk jika data dibungkus lagi di data/result.
+        const findXsPediaId = (obj) => {
+            if (!obj || typeof obj !== 'object') return null;
+            const direct = obj.id ?? obj.transaction_id ?? obj.transactionId ?? obj.trx_id ?? obj.trxId ?? obj.reff_id ?? obj.reffId ?? obj.reference_id ?? obj.referenceId;
+            if (direct !== undefined && direct !== null && String(direct).trim()) return String(direct).trim();
+            for (const key of ['data', 'result', 'transaction', 'deposit']) {
+                if (obj[key] && typeof obj[key] === 'object') {
+                    const nested = findXsPediaId(obj[key]);
+                    if (nested) return nested;
+                }
+            }
+            return null;
+        };
+        const xspediaId = findXsPediaId(xsPediaJson);
 
         if (!xspediaId) throw new Error('ID transaksi XS-Pedia tidak ditemukan pada respons create.');
         if (!qrisNumber && !qrisImage) throw new Error('Data QRIS dari XS-Pedia tidak lengkap.');
@@ -966,16 +981,23 @@ app.get('/transactions/:orderId', async (req, res) => {
         if (providerId) {
             try {
                 const statusJson = await xsPediaRequest('/deposit/status', { id: providerId });
-                const providerStatus = String(
-                    statusJson?.data?.status ??
-                    statusJson?.data?.payment_status ??
-                    statusJson?.status ??
-                    statusJson?.payment_status ??
-                    statusJson?.data?.data?.status ??
-                    ''
-                ).trim().toLowerCase();
+                const findProviderStatus = (obj) => {
+                    if (!obj || typeof obj !== 'object') return '';
+                    const candidates = [obj.status, obj.payment_status, obj.paymentStatus, obj.transaction_status, obj.transactionStatus, obj.state];
+                    for (const value of candidates) {
+                        if (value !== undefined && value !== null && String(value).trim()) return String(value).trim().toLowerCase();
+                    }
+                    for (const key of ['data', 'result', 'transaction', 'deposit']) {
+                        if (obj[key] && typeof obj[key] === 'object') {
+                            const nested = findProviderStatus(obj[key]);
+                            if (nested) return nested;
+                        }
+                    }
+                    return '';
+                };
+                const providerStatus = findProviderStatus(statusJson);
 
-                console.log(`🔎 [XS-PEDIA STATUS] ${providerId}:`, providerStatus || '(kosong)');
+                console.log(`🔎 [XS-PEDIA STATUS] ID=${providerId} STATUS=${providerStatus || '(kosong)'}`, JSON.stringify(statusJson));
 
                 if (["success", "paid", "settlement", "settled", "completed", "berhasil", "sukses"].includes(providerStatus)) {
                     currentStatus = 'success';
@@ -1000,7 +1022,7 @@ app.get('/transactions/:orderId', async (req, res) => {
             currentStatus = 'cancelled';
         }
 
-        const isSuccess = ['settlement', 'success', 'paid', 'settled', 'completed'].includes(currentStatus);
+        const isSuccess = ['settlement', 'success', 'paid', 'settled', 'completed', 'berhasil', 'sukses'].includes(currentStatus);
 
         // Jalankan upgrade tepat sekali setelah provider menyatakan pembayaran sukses.
         if (isSuccess && !localTrx.itemDetails?.upgradeProcessed) {
@@ -1011,27 +1033,28 @@ app.get('/transactions/:orderId', async (req, res) => {
                     const isVip = itemName.toLowerCase().includes('vip');
                     const targetRole = isVip ? 'VIP User' : 'Premium User';
 
-                    const buyerId = localTrx.buyerId || localTrx.itemDetails?.buyerId;
-                    const buyerEmail = localTrx.buyerEmail || localTrx.itemDetails?.buyerEmail;
-                    const buyerUsername = localTrx.buyerUsername || localTrx.itemDetails?.buyerUsername;
+                    const buyerId = localTrx.buyerId || localTrx.itemDetails?.buyerId || req.user?.id || req.user?._id;
+                    const buyerEmail = localTrx.buyerEmail || localTrx.itemDetails?.buyerEmail || req.user?.email;
+                    const buyerUsername = localTrx.buyerUsername || localTrx.itemDetails?.buyerUsername || req.user?.username;
+
+                    console.log(`👤 [XS-PEDIA UPGRADE] Identitas pembeli: id=${buyerId || '-'} username=${buyerUsername || '-'} email=${buyerEmail || '-'}`);
 
                     let targetUser = null;
                     if (buyerId && mongoose.Types.ObjectId.isValid(String(buyerId))) {
-                        targetUser = await User.findById(buyerId);
+                        targetUser = await User.findById(String(buyerId));
                     }
                     if (!targetUser && buyerEmail) {
                         targetUser = await User.findOne({ email: String(buyerEmail).toLowerCase().trim() });
                     }
                     if (!targetUser && buyerUsername) {
-                        targetUser = await User.findOne({ username: String(buyerUsername).toLowerCase().trim() });
+                        targetUser = await User.findOne({ username: String(buyerUsername).trim() });
                     }
-
-                    if (!targetUser && req.user?.id) {
-                        targetUser = await User.findById(req.user.id);
+                    if (!targetUser && buyerUsername) {
+                        targetUser = await User.findOne({ username: new RegExp(`^${String(buyerUsername).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') });
                     }
 
                     if (!targetUser) {
-                        throw new Error('User pembeli tidak ditemukan di database MongoDB.');
+                        throw new Error(`User pembeli tidak ditemukan di MongoDB. buyerId=${buyerId || '-'} username=${buyerUsername || '-'} email=${buyerEmail || '-'}`);
                     }
 
                     let currentExpiry = (
@@ -1051,15 +1074,54 @@ app.get('/transactions/:orderId', async (req, res) => {
                         }
                     }
 
-                    await targetUser.save();
+                    // Update langsung ke collection users agar benar-benar tersimpan di DB
+                    // yang dipakai aplikasi, bukan hanya mengandalkan object Mongoose lokal.
+                    const updateResult = await User.updateOne(
+                        { _id: targetUser._id },
+                        { $set: { role: targetRole, roleExpiresAt: currentExpiry, apikey: targetUser.apikey } }
+                    );
+                    if (!updateResult.matchedCount) {
+                        throw new Error(`Gagal menemukan document users untuk _id=${targetUser._id}`);
+                    }
+
+                    const verifiedUser = await User.findById(targetUser._id);
+                    if (!verifiedUser || verifiedUser.role !== targetRole) {
+                        throw new Error(`Verifikasi database gagal: role masih ${verifiedUser?.role || 'tidak ditemukan'}`);
+                    }
 
                     localTrx.itemDetails.upgradeProcessed = true;
-                    localTrx.itemDetails.upgradedUserId = String(targetUser._id);
+                    localTrx.itemDetails.upgradedUserId = String(verifiedUser._id);
+                    localTrx.itemDetails.upgradedUsername = verifiedUser.username;
                     localTrx.itemDetails.upgradeProcessedAt = new Date().toISOString();
+                    localTrx.itemDetails.upgradeDatabase = 'MongoDB.users';
                     localTrx.status = 'success';
                     localTrx.updatedAt = new Date();
+                    localTrx.markModified('itemDetails');
 
-                    console.log(`🎉 [XS-PEDIA UPGRADE] ${targetUser.username} => ${targetRole} sampai ${currentExpiry.toISOString()}`);
+                    // Refresh JWT agar halaman/profile yang masih membaca session lama
+                    // langsung mengetahui role dan API key terbaru.
+                    try {
+                        const refreshedPayload = {
+                            id: verifiedUser._id,
+                            username: verifiedUser.username,
+                            email: verifiedUser.email,
+                            name: verifiedUser.username,
+                            avatar: verifiedUser.avatar?.startsWith('data:') ? null : verifiedUser.avatar,
+                            role: verifiedUser.role,
+                            apikey: verifiedUser.apikey
+                        };
+                        const refreshedToken = jwt.sign(refreshedPayload, JWT_SECRET, { expiresIn: '7d' });
+                        res.cookie('auth_session', refreshedToken, {
+                            maxAge: 7 * 24 * 60 * 60 * 1000,
+                            httpOnly: true,
+                            secure: true,
+                            sameSite: 'lax'
+                        });
+                    } catch (jwtErr) {
+                        console.warn('⚠️ Gagal refresh auth_session setelah upgrade:', jwtErr.message);
+                    }
+
+                    console.log(`🎉 [XS-PEDIA UPGRADE] ID=${providerId} USER_ID=${verifiedUser._id} USERNAME=${verifiedUser.username} ROLE_SEBELUM=${targetRole === verifiedUser.role ? 'verified' : targetUser.role} ROLE_SESUDAH=${verifiedUser.role} EXPIRES=${currentExpiry.toISOString()}`);
                 } catch (upgradeErr) {
                     // Jangan mengubah success menjadi pending. Pembayaran sudah sukses;
                     // error di sini hanya berarti sinkronisasi role belum selesai.
